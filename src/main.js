@@ -99,38 +99,37 @@ import player from './player.js'; // Import the Player class
 
   // --- Player ---
   let mixer, siegeAction, siegeREAction;
-  //let clock = new THREE.Clock();
+  let playerModel;
 
   const loader = new GLTFLoader();
   loader.load('/assets/tank.glb',
     (gltf) => {
-      const tank = gltf.scene;
-      tank.scale.set(0.3, 0.3, 0.3);
-      scene.add(tank);
-      playerModel.add(tank);
+        const tank = gltf.scene;
+        tank.scale.set(0.3, 0.3, 0.3);
+        scene.add(tank);
+        //  playerModel.add(tank); // Remove this line
 
-      mixer = new THREE.AnimationMixer(tank);
-      const animations = gltf.animations;
+        //  Initialize playerModel with the tank instead of the cube
+        playerModel = tank; //  <---  Assign the tank to playerModel
+        playerModel.position.set(0, PLAYER_SIZE / 2, 0);  //  <---  Initial position
+        playerModel.castShadow = true;
+        playerModel.receiveShadow = true;
 
-      // Animations benennen
-      siegeAction = mixer.clipAction(animations.find(clip => clip.name === 'SiegeMode'));
-      siegeREAction = mixer.clipAction(animations.find(clip => clip.name === 'SiegeModeRE'));
+        mixer = new THREE.AnimationMixer(tank);
+        const animations = gltf.animations;
 
-      // Alle Animationen vorbereiten: Einmal abspielen, nicht loopen, letzte Pose beibehalten
-      [siegeAction, siegeREAction].forEach(action => {
-          action.setLoop(THREE.LoopOnce);
-          action.clampWhenFinished = true;
-          action.enable = true;
-    });
+        // Animations benennen
+        siegeAction = mixer.clipAction(animations.find(clip => clip.name === 'SiegeMode'));
+        siegeREAction = mixer.clipAction(animations.find(clip => clip.name === 'SiegeModeRE'));
+
+        // Alle Animationen vorbereiten: Einmal abspielen, nicht loopen, letzte Pose beibehalten
+        [siegeAction, siegeREAction].forEach(action => {
+            action.setLoop(THREE.LoopOnce);
+            action.clampWhenFinished = true;
+            action.enable = true;
+        });
     },
-  );
-  const playerMaterial = new THREE.MeshStandardMaterial({ color: PLAYER_NORMAL_COLOR, roughness: 0.4, metalness: 0.1 });
-  const playerGeometry = new THREE.BoxGeometry(PLAYER_SIZE, PLAYER_SIZE, PLAYER_SIZE);
-  const playerModel = new THREE.Mesh(playerGeometry, playerMaterial);
-  playerModel.position.set(0, PLAYER_SIZE / 2, 0);
-  playerModel.castShadow = true;
-  playerModel.receiveShadow = true; // Can receive shadows from taller obstacles
-  scene.add(playerModel);
+);
 
  
 
