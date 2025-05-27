@@ -112,7 +112,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
       scene.add(tank);
       playerModel.add(tank); // Eltern-Kind-Verknüpfung
 
-      mixer = new THREE.AnimationMixer(model);
+      mixer = new THREE.AnimationMixer(tank);
       const animations = gltf.animations;
 
       // Animations benennen
@@ -219,27 +219,29 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
   activeMode = !activeMode;
   playerModel.material.color.setHex(activeMode ? PLAYER_ACTIVE_COLOR : PLAYER_NORMAL_COLOR);
   if (activeMode) {
-  if (!activationRangeRing) {
-  const ringGeo = new THREE.RingGeometry(SHOT_RANGE - 0.15, SHOT_RANGE, 64);
-  const ringMat = new THREE.MeshBasicMaterial({ color: PLAYER_ACTIVE_COLOR, side: THREE.DoubleSide, transparent: true, opacity: 0.4 });
-  activationRangeRing = new THREE.Mesh(ringGeo, ringMat);
-  activationRangeRing.rotation.x = -Math.PI / 2;
-  }
-  activationRangeRing.position.set(playerModel.position.x, 0.02, playerModel.position.z);
-  scene.add(activationRangeRing);
+    enterCombatMode();  // <-- Play "SiegeMode"
+    if (!activationRangeRing) {
+    const ringGeo = new THREE.RingGeometry(SHOT_RANGE - 0.15, SHOT_RANGE, 64);
+    const ringMat = new THREE.MeshBasicMaterial({ color: PLAYER_ACTIVE_COLOR, side: THREE.DoubleSide, transparent: true, opacity: 0.4 });
+    activationRangeRing = new THREE.Mesh(ringGeo, ringMat);
+    activationRangeRing.rotation.x = -Math.PI / 2;
+    }
+    activationRangeRing.position.set(playerModel.position.x, 0.02, playerModel.position.z);
+    scene.add(activationRangeRing);
   } else {
-  if (activationRangeRing) {
-  scene.remove(activationRangeRing);
-  if(activationRangeRing.geometry) activationRangeRing.geometry.dispose();
-  if(activationRangeRing.material) activationRangeRing.material.dispose();
-  activationRangeRing = null;
-  }
-  if (cursorIndicator) {
-  scene.remove(cursorIndicator);
-  if(cursorIndicator.geometry) cursorIndicator.geometry.dispose();
-  if(cursorIndicator.material) cursorIndicator.material.dispose();
-  cursorIndicator = null;
-  }
+    enterDriveMode();   // <-- Play "SiegeModeRE"
+    if (activationRangeRing) {
+    scene.remove(activationRangeRing);
+    if(activationRangeRing.geometry) activationRangeRing.geometry.dispose();
+    if(activationRangeRing.material) activationRangeRing.material.dispose();
+    activationRangeRing = null;
+    }
+    if (cursorIndicator) {
+    scene.remove(cursorIndicator);
+    if(cursorIndicator.geometry) cursorIndicator.geometry.dispose();
+    if(cursorIndicator.material) cursorIndicator.material.dispose();
+    cursorIndicator = null;
+    }
   }
   }
   });
@@ -488,7 +490,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
     requestAnimationFrame(animate);
     const deltaTime = clock.getDelta();
 
-    if (mixer) mixer.update(delta);
+    if (mixer) mixer.update(deltaTime);
     renderer.render(scene, camera);
 
     if (!gameOver) {
