@@ -1,16 +1,20 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import Player from './player.js';
-import { Enemy, spawnEnemy, ENEMY_SIZE, ENEMY_SPEED_PER_SEC, ENEMY_COLOR } from './enemy.js';
+import { Explosion } from './explosion.js';
 
 // --- Game Constants ---
 const GRID_SIZE = 50;
 const PLAYER_SIZE = 1;
-const PLAYER_SPEED = 5.0; // Units per second
-const PLAYER_NORMAL_COLOR = 0x4488ff; // Brighter Blue
-const PLAYER_ACTIVE_COLOR = 0xff4444; // Brighter Red
+const PLAYER_SPEED = 5.0;
+const PLAYER_NORMAL_COLOR = 0x4488ff;
+const PLAYER_ACTIVE_COLOR = 0xff4444;
 
-const ENEMY_SPAWN_INTERVAL = 2000; // ms
+const ENEMY_SIZE = 0.5;
+const ENEMY_COLOR = 0x993399;
+const ENEMY_SPEED_PER_SEC = 1.0;
+const ENEMY_SPAWN_INTERVAL = 2000;
+const ENEMY_SPAWN_RADIUS_FACTOR = 1.0;
 
 const OBSTACLE_WALL_COLOR = 0x666666;
 const OBSTACLE_RANDOM_COLOR = 0x5070C0;
@@ -33,9 +37,18 @@ const FOG_FAR_FACTOR = 2.5;
 // --- Scene Setup ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(SCENE_BACKGROUND_COLOR);
-scene.fog = new THREE.Fog(SCENE_BACKGROUND_COLOR, CAMERA_Y_OFFSET * FOG_NEAR_FACTOR, CAMERA_Y_OFFSET + GRID_SIZE * FOG_FAR_FACTOR);
+scene.fog = new THREE.Fog(
+  SCENE_BACKGROUND_COLOR,
+  CAMERA_Y_OFFSET * FOG_NEAR_FACTOR,
+  CAMERA_Y_OFFSET + GRID_SIZE * FOG_FAR_FACTOR
+);
 
-const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(
+  50,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
@@ -90,9 +103,16 @@ scene.add(mainGround);
 
 // --- Obstacles ---
 const obstacles = [];
-const wallMaterial = new THREE.MeshStandardMaterial({ color: OBSTACLE_WALL_COLOR, roughness: 0.8, metalness: 0.1 });
-const randomObstacleMaterial = new THREE.MeshStandardMaterial({ color: OBSTACLE_RANDOM_COLOR, roughness: 0.7, metalness: 0.1 });
-
+const wallMaterial = new THREE.MeshStandardMaterial({
+  color: OBSTACLE_WALL_COLOR,
+  roughness: 0.8,
+  metalness: 0.1
+});
+const randomObstacleMaterial = new THREE.MeshStandardMaterial({
+  color: OBSTACLE_RANDOM_COLOR,
+  roughness: 0.7,
+  metalness: 0.1
+});
 const wallGeo = new THREE.BoxGeometry(1, 2, 1);
 const randomObstacleGeo = new THREE.BoxGeometry(1, 1.5, 1);
 for (let i = -GRID_SIZE / 2; i <= GRID_SIZE / 2; i++) {
@@ -131,10 +151,34 @@ player.loadModel(scene);
 
 // --- Enemies ---
 const enemies = [];
+const enemyMaterial = new THREE.MeshStandardMaterial({
+  color: ENEMY_COLOR,
+  roughness: 0.6,
+  metalness: 0.1
+});
+function spawnEnemy() {
+  if (gameOver) return;
+  const enemyGeo = new THREE.BoxGeometry(ENEMY_SIZE, ENEMY_SIZE, ENEMY_SIZE);
+  const enemy = new THREE.Mesh(enemyGeo, enemyMaterial);
+  enemy.castShadow = true;
+  enemy.receiveShadow = true;
 
-// --- Active Shots ---
+  let angle = Math.random() * Math.PI * 2;
+  let radius = (GRID_SIZE / 2) * ENEMY_SPAWN_RADIUS_FACTOR;
+  let x = player.position.x + Math.cos(angle) * radius;
+  let z = player.position.z + Math.sin(angle) * radius;
+
+  x = Math.max(-GRID_SIZE / 2 + ENEMY_SIZE, Math.min(GRID_SIZE / 2 - ENEMY_SIZE, x));
+  z = Math.max(-GRID_SIZE / 2 + ENEMY_SIZE, Math.min(GRID_SIZE / 2 - ENEMY_SIZE, z));
+
+  enemy.position.set(x, ENEMY_SIZE / 2, z);
+  scene.add(enemy);
+  enemies.push(enemy);
+}
+
+// --- Active Shots & Explosions ---
 const activeShots = [];
-const explosions = [];
+const explosions = []; // Now stores Explosion instances
 
 // --- Input Handling ---
 const keys = {};
@@ -157,7 +201,6 @@ renderer.domElement.addEventListener('mousemove', (event) => {
   raycaster.setFromCamera(mouse, camera);
   raycaster.ray.intersectPlane(groundPlaneRay, cursorWorld);
 
-  // Update cursor indicator through player class
   if (activeMode && !gameOver) {
     player.createCursorIndicator(scene, cursorWorld);
     player.updateCursorIndicator(cursorWorld);
@@ -181,7 +224,11 @@ renderer.domElement.addEventListener('click', (event) => {
     updateCooldownBar(0);
 
     const circleGeometry = new THREE.CircleGeometry(SHOT_RADIUS, 32);
-    const circleMaterial = new THREE.MeshBasicMaterial({ color: SHOT_ACTIVE_COLOR, transparent: true, opacity: 0.5 });
+    const circleMaterial = new THREE.MeshBasicMaterial({
+      color: SHOT_ACTIVE_COLOR,
+      transparent: true,
+      opacity: 0.5
+    });
     const shotCircle = new THREE.Mesh(circleGeometry, circleMaterial);
     shotCircle.rotation.x = -Math.PI / 2;
     shotCircle.position.set(intersectPoint.x, 0.01, intersectPoint.z);
@@ -202,17 +249,45 @@ renderer.domElement.addEventListener('click', (event) => {
   }
 });
 
+// --- Explosion Creation (modular) ---
+function createExplosion(position) {
+  explosions.push(new Explosion(position, scene));
+}
+
 // --- Game Logic Functions ---
 function updateCooldownBar(progress) {
-  document.getElementById('cooldown-bar').style.width = `${Math.min(1, Math.max(0, progress)) * 100}%`;
+  document.getElementById('cooldown-bar').style.width =
+    `${Math.min(1, Math.max(0, progress)) * 100}%`;
 }
 
 function updateEnemies(deltaTime) {
   if (gameOver) return;
   for (let i = enemies.length - 1; i >= 0; i--) {
     const enemy = enemies[i];
-    const collidedWithPlayer = enemy.update(deltaTime, player.position, obstacles, GRID_SIZE);
-    if (collidedWithPlayer) {
+    const directionToPlayer = new THREE.Vector3().subVectors(player.position, enemy.position);
+    if (directionToPlayer.lengthSq() < 0.01) continue;
+    directionToPlayer.normalize();
+    const moveDistance = ENEMY_SPEED_PER_SEC * deltaTime;
+    const moveVector = directionToPlayer.clone().multiplyScalar(moveDistance);
+    const nextPos = enemy.position.clone().add(moveVector);
+    let collidesWithObstacle = false;
+    const enemyHalfSize = ENEMY_SIZE / 2;
+    for (const obs of obstacles) {
+      const obsParams = obs.geometry.parameters;
+      const obsHalfWidth = obsParams.width / 2;
+      const obsHalfDepth = obsParams.depth / 2;
+      if (
+        Math.abs(obs.position.x - nextPos.x) < (enemyHalfSize + obsHalfWidth) &&
+        Math.abs(obs.position.z - nextPos.z) < (enemyHalfSize + obsHalfDepth)
+      ) {
+        collidesWithObstacle = true;
+        break;
+      }
+    }
+    if (!collidesWithObstacle) {
+      enemy.position.copy(nextPos);
+    }
+    if (enemy.position.distanceTo(player.position) < (PLAYER_SIZE / 2 + ENEMY_SIZE / 2)) {
       gameOver = true;
       document.getElementById('game-over-message').style.display = 'block';
       player.exitCombatMode(scene);
@@ -230,7 +305,7 @@ function updateActiveShots() {
       const enemy = enemies[j];
       if (shot.position.distanceTo(enemy.position) < SHOT_RADIUS) {
         scene.remove(enemy);
-        enemy.dispose(); // Dispose of enemy resources
+        if (enemy.geometry) enemy.geometry.dispose();
         enemies.splice(j, 1);
         score++;
         document.getElementById('score').innerText = `Score: ${score}`;
@@ -245,45 +320,6 @@ function updateActiveShots() {
   }
 }
 
-function createExplosion(position) {
-  const particleCount = 20;
-  const particleGeometry = new THREE.SphereGeometry(0.3, 16, 16);
-  for (let i = 0; i < particleCount; i++) {
-    const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xffa500 });
-    const particle = new THREE.Mesh(particleGeometry, particleMaterial);
-    particle.position.copy(position);
-    scene.add(particle);
-
-    const direction = new THREE.Vector3(
-      Math.random() - 0.5,
-      Math.random() - 0.5,
-      Math.random() - 0.5
-    ).normalize();
-    const speed = 5;
-
-    explosions.push({
-      mesh: particle,
-      direction: direction,
-      speed: speed,
-      endTime: clock.elapsedTime + 0.5
-    });
-  }
-}
-
-function updateExplosions(deltaTime) {
-  const currentTime = clock.elapsedTime;
-  for (let i = explosions.length - 1; i >= 0; i--) {
-    const explosion = explosions[i];
-    explosion.mesh.position.add(explosion.direction.clone().multiplyScalar(explosion.speed * deltaTime));
-    if (currentTime >= explosion.endTime) {
-      scene.remove(explosion.mesh);
-      if (explosion.mesh.geometry) explosion.mesh.geometry.dispose();
-      if (explosion.mesh.material) explosion.mesh.material.dispose();
-      explosions.splice(i, 1);
-    }
-  }
-}
-
 // --- Animation Loop ---
 function animate() {
   requestAnimationFrame(animate);
@@ -294,27 +330,38 @@ function animate() {
 
     if (shotCooldownTimer > 0) {
       shotCooldownTimer -= deltaTime;
-      updateCooldownBar(1 - (shotCooldownTimer / SHOT_COOLDOWN_S));
+      updateCooldownBar(1 - shotCooldownTimer / SHOT_COOLDOWN_S);
       if (shotCooldownTimer <= 0) {
         canShoot = true;
         shotCooldownTimer = 0;
         updateCooldownBar(1);
       }
     }
+
     enemySpawnTimer -= deltaTime * 1000;
     if (enemySpawnTimer <= 0) {
-      // Spawn a new enemy using the function from enemy.js
-      const newEnemy = spawnEnemy(scene, player.position, GRID_SIZE);
-      enemies.push(newEnemy);
+      spawnEnemy();
       enemySpawnTimer = ENEMY_SPAWN_INTERVAL;
     }
   }
 
   updateEnemies(deltaTime);
   updateActiveShots();
-  updateExplosions(deltaTime);
 
-  camera.position.set(player.position.x, player.position.y + CAMERA_Y_OFFSET, player.position.z + CAMERA_Z_OFFSET);
+  // --- Modular Explosion Update ---
+  for (let i = explosions.length - 1; i >= 0; i--) {
+    explosions[i].update(deltaTime);
+    if (explosions[i].isFinished()) {
+      explosions[i].dispose();
+      explosions.splice(i, 1);
+    }
+  }
+
+  camera.position.set(
+    player.position.x,
+    player.position.y + CAMERA_Y_OFFSET,
+    player.position.z + CAMERA_Z_OFFSET
+  );
   camera.lookAt(player.position);
 
   renderer.render(scene, camera);
