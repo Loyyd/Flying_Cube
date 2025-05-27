@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-
+import player from './player.js'; // Import the Player class
 // --- Game Constants ---
   const GRID_SIZE = 50;
   const PLAYER_SIZE = 1;
@@ -97,7 +97,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
   let activationRangeRing = null;
   let cursorIndicator = null; // New cursor indicator
 
-  // --- Player Cube ---
+  // --- Player ---
   let mixer, siegeAction, siegeREAction;
   //let clock = new THREE.Clock();
 
@@ -214,7 +214,6 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
   keys[e.key.toLowerCase()] = true;
   if (e.key === ' ' && !gameOver) {
   activeMode = !activeMode;
-  playerModel.material.color.setHex(activeMode ? PLAYER_ACTIVE_COLOR : PLAYER_NORMAL_COLOR);
   if (activeMode) {
     enterCombatMode();  // <-- Play "SiegeMode"
     if (!activationRangeRing) {
