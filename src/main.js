@@ -42,7 +42,6 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Softer shadows
-  // renderer.useLegacyLights = false; // Default in newer Three.js versions
 
   document.getElementById('canvas-container').appendChild(renderer.domElement);
 
@@ -64,8 +63,6 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
   directionalLight.shadow.camera.top = GRID_SIZE / 1.5;
   directionalLight.shadow.camera.bottom = -GRID_SIZE / 1.5;
   scene.add(directionalLight);
-  // const shadowHelper = new THREE.CameraHelper(directionalLight.shadow.camera); // For debugging shadow frustum
-  // scene.add(shadowHelper);
 
 
   // --- Raycasting & Mouse ---
@@ -110,7 +107,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
       const tank = gltf.scene;
       tank.scale.set(0.3, 0.3, 0.3);
       scene.add(tank);
-      playerModel.add(tank); // Eltern-Kind-Verknüpfung
+      playerModel.add(tank);
 
       mixer = new THREE.AnimationMixer(tank);
       const animations = gltf.animations;
@@ -423,7 +420,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
   }
   }
 
-  function updateActiveShots() { // DeltaTime not strictly needed here if endTimes are absolute
+  function updateActiveShots() { 
   const currentTime = clock.elapsedTime;
   for (let i = activeShots.length - 1; i >= 0; i--) {
   const shot = activeShots[i];
