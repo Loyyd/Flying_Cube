@@ -101,6 +101,15 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
   let cursorIndicator = null; // New cursor indicator
 
   // --- Player Cube ---
+  const loader = new GLTFLoader();
+  loader.load('/assets/cube.glb',
+    (gltf) => {
+      const model = gltf.scene;
+      model.scale.set(0.3, 0.3, 0.3);
+      scene.add(model);
+    },
+  );
+
   const playerMaterial = new THREE.MeshStandardMaterial({ color: PLAYER_NORMAL_COLOR, roughness: 0.4, metalness: 0.1 });
   const playerGeometry = new THREE.BoxGeometry(PLAYER_SIZE, PLAYER_SIZE, PLAYER_SIZE);
   const playerCube = new THREE.Mesh(playerGeometry, playerMaterial);
@@ -109,18 +118,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
   playerCube.receiveShadow = true; // Can receive shadows from taller obstacles
   scene.add(playerCube);
 
-  const loader = new GLTFLoader();
-  loader.load('/assets/cube.glb',
-    (gltf) => {
-      const model = gltf.scene;
-      model.scale.set(0.5, 0.5, 0.5);
-      scene.add(model);
-    },
-    undefined,
-    (error) => {
-      console.error('Fehler beim Laden:', error);
-    }
-  );
+  
 
   // --- Aiming Cone ---
   const coneMaterial = new THREE.MeshBasicMaterial({ color: 0x00aaff, transparent: true, opacity: 0.7 }); // Brighter, transparent
