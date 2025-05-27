@@ -10,7 +10,6 @@ class Player extends THREE.Mesh {
         this.shotCooldownTimer = 0;
         this.lastShotDirection = new THREE.Vector3(0, 0, -1);
         this.activationRangeRing = null;
-        this.aimingCone = null;
         this.cursorIndicator = null;
         this.mixer = null;
         this.siegeAction = null;
@@ -19,6 +18,7 @@ class Player extends THREE.Mesh {
         this.position.copy(initialPosition);
         this.castShadow = true;
         this.receiveShadow = true;
+        this.rotorBone = null;
     }
 
     loadModel(scene) {
@@ -39,15 +39,14 @@ class Player extends THREE.Mesh {
                 action.clampWhenFinished = true;
                 action.enable = true;
             });
+
+            // Get the rotor bone here, after the model is loaded
+            this.rotorBone = tank.getObjectByName("rotor"); 
+            if (!this.rotorBone) {
+                console.warn("Could not find bone named 'rotor' in tank.glb");
+            }
         });
         scene.add(this);
-    }
-
-    createAimingCone(scene) {
-        const coneMaterial = new THREE.MeshBasicMaterial({ color: 0x00aaff, transparent: true, opacity: 0.7 });
-        const coneGeometry = new THREE.ConeGeometry(0.3, 1, 16);
-        this.aimingCone = new THREE.Mesh(coneGeometry, coneMaterial);
-        scene.add(this.aimingCone);
     }
 
     move(deltaTime, keys, obstacles) {
@@ -87,26 +86,6 @@ class Player extends THREE.Mesh {
             if (moveVector.x !== 0 || moveVector.y !== 0) {
                 this.rotation.y = Math.atan2(moveVector.x, moveVector.y);
             }
-        }
-    }
-
-    updateAimingCone(cursorWorld) {
-        if (!this.aimingCone) return;
-
-        this.aimingCone.position.set(this.position.x, this.position.y + this.geometry.parameters.height * 0.7, this.position.z);
-        let direction;
-        if (this.isCombatMode) {
-            direction = this.lastShotDirection.clone();
-        } else {
-            direction = new THREE.Vector3().subVectors(cursorWorld, this.position);
-            direction.y = 0;
-            if (direction.lengthSq() > 0) direction.normalize();
-            else direction.set(0, 0, -1);
-        }
-
-        if (direction.lengthSq() > 0.001) {
-            const targetPos = new THREE.Vector3().addVectors(this.position, direction);
-            this.aimingCone.lookAt(targetPos);
         }
     }
 
@@ -177,14 +156,26 @@ class Player extends THREE.Mesh {
         if (mesh.geometry) mesh.geometry.dispose();
         if (mesh.material) mesh.material.dispose();
     }
+    updateRotorRotation(cursorWorld) {
+        if (this.rotorBone) {
+            this.rotorBone.lookAt(cursorWorld);
+        }
+    }
 
     update(deltaTime, keys, obstacles, cursorWorld, scene) {
         if (this.mixer) this.mixer.update(deltaTime);
         this.move(deltaTime, keys, obstacles);
-        this.updateAimingCone(cursorWorld);
         this.updateActivationRangeRing();
 
         if (this.isCombatMode) {
+            this.createCursorIndicator(scene, cursorWorld);
+            this.updateCursorIndicator(cursorWorld);
+        } else {
+            this.removeCursorIndicator(scene);
+        }
+        // Update the rotor's rotation
+        if (this.isCombatMode) {
+            this.updateRotorRotation(cursorWorld);  
             this.createCursorIndicator(scene, cursorWorld);
             this.updateCursorIndicator(cursorWorld);
         } else {

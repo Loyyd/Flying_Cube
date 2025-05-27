@@ -131,7 +131,6 @@ const playerGeometry = new THREE.BoxGeometry(PLAYER_SIZE, PLAYER_SIZE, PLAYER_SI
 const playerMaterial = new THREE.MeshStandardMaterial({ color: PLAYER_NORMAL_COLOR });
 const player = new Player(playerGeometry, playerMaterial);
 player.loadModel(scene);
-player.createAimingCone(scene);
 
 // --- Enemies ---
 const enemies = [];
