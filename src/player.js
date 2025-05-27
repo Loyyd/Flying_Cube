@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import * as CANNON from 'cannon-es'; // Import cannon-es
 
 class Player extends THREE.Mesh {
     constructor(geometry, material, initialPosition = new THREE.Vector3(0, 0, 0)) {
@@ -41,7 +42,7 @@ class Player extends THREE.Mesh {
             });
 
             // Get the rotor bone here, after the model is loaded
-            this.rotorBone = tank.getObjectByName("rotor"); 
+            this.rotorBone = tank.getObjectByName("rotor");
             if (!this.rotorBone) {
                 console.warn("Could not find bone named 'rotor' in tank.glb");
             }
@@ -49,8 +50,19 @@ class Player extends THREE.Mesh {
         scene.add(this);
     }
 
-    move(deltaTime, keys, obstacles) {
-        if (this.isCombatMode) return; // Can't move in combat mode
+    /**
+     * Moves the player using Cannon.js physics (kinematic body).
+     * @param {number} deltaTime - The time elapsed since the last frame.
+     * @param {object} keys - Object containing current key states.
+     * @param {Array<THREE.Mesh>} obstacles - Array of Three.js obstacle meshes (not directly used for collision here, but kept for consistency).
+     * @param {CANNON.Body} playerBody - The Cannon.js body associated with the player.
+     */
+    move(deltaTime, keys, obstacles, playerBody) {
+        if (this.isCombatMode) {
+            // Stop movement when in combat mode
+            playerBody.velocity.set(0, playerBody.velocity.y, 0);
+            return;
+        }
 
         let dx = 0;
         let dz = 0;
@@ -59,37 +71,31 @@ class Player extends THREE.Mesh {
         if (keys['a']) dx -= 1;
         if (keys['d']) dx += 1;
 
-        if (dx === 0 && dz === 0) return;
+        const moveVector = new THREE.Vector3(dx, 0, dz);
 
-        const moveVector = new THREE.Vector2(dx, dz).normalize();
-        const moveAmount = this.speed * deltaTime;
-
-        const newX = this.position.x + moveVector.x * moveAmount;
-        const newZ = this.position.z + moveVector.y * moveAmount;
-
-        let collision = false;
-        const playerHalfSize = this.geometry.parameters.width / 2; // Assuming BoxGeometry
-        for (const obs of obstacles) {
-            const obsParams = obs.geometry.parameters;
-            const obsHalfWidth = obsParams.width / 2;
-            const obsHalfDepth = obsParams.depth / 2;
-            if (Math.abs(obs.position.x - newX) < (playerHalfSize + obsHalfWidth) &&
-                Math.abs(obs.position.z - newZ) < (playerHalfSize + obsHalfDepth)) {
-                collision = true;
-                break;
-            }
-        }
-
-        if (!collision) {
-            this.position.x = newX;
-            this.position.z = newZ;
-            if (moveVector.x !== 0 || moveVector.y !== 0) {
-                this.rotation.y = Math.atan2(moveVector.x, moveVector.y);
-            }
+        if (moveVector.lengthSq() > 0) {
+            moveVector.normalize();
+            // Set the velocity directly for kinematic bodies
+            playerBody.velocity.set(
+                moveVector.x * this.speed,
+                playerBody.velocity.y, // Preserve vertical velocity (e.g., from gravity)
+                moveVector.z * this.speed
+            );
+            // Update Three.js mesh rotation based on movement direction
+            this.rotation.y = Math.atan2(moveVector.x, moveVector.z);
+        } else {
+            // Stop movement if no keys are pressed
+            playerBody.velocity.set(0, playerBody.velocity.y, 0);
         }
     }
 
-    enterCombatMode(scene, playerActiveColor) {
+    /**
+     * Enters combat mode, updating player visuals and physics body state.
+     * @param {THREE.Scene} scene - The Three.js scene.
+     * @param {number} playerActiveColor - The color for the player in active mode.
+     * @param {CANNON.Body} playerBody - The Cannon.js body associated with the player.
+     */
+    enterCombatMode(scene, playerActiveColor, playerBody) {
         this.isCombatMode = true;
         this.material.color.setHex(playerActiveColor);
         if (this.siegeREAction) this.siegeREAction.stop();
@@ -103,9 +109,20 @@ class Player extends THREE.Mesh {
             scene.add(this.activationRangeRing);
         }
         this.activationRangeRing.position.set(this.position.x, 0.02, this.position.z);
+
+        // Put player body to sleep and clear velocity when entering combat mode
+        if (playerBody) {
+            playerBody.sleep();
+            playerBody.velocity.set(0, 0, 0);
+        }
     }
 
-    exitCombatMode(scene) {
+    /**
+     * Exits combat mode, updating player visuals and physics body state.
+     * @param {THREE.Scene} scene - The Three.js scene.
+     * @param {CANNON.Body} playerBody - The Cannon.js body associated with the player.
+     */
+    exitCombatMode(scene, playerBody) {
         this.isCombatMode = false;
         this.material.color.setHex(0x4488ff); // PLAYER_NORMAL_COLOR
         if (this.siegeAction) this.siegeAction.stop();
@@ -117,6 +134,13 @@ class Player extends THREE.Mesh {
             this.activationRangeRing = null;
         }
         this.removeCursorIndicator(scene);
+
+        // Wake up player body when exiting combat mode
+        if (playerBody) {
+            playerBody.wakeUp();
+            // Optionally, reset velocity here if needed, though `move` will set it on next input
+            // playerBody.velocity.set(0, playerBody.velocity.y, 0);
+        }
     }
 
     createCursorIndicator(scene, cursorWorld) {
@@ -162,22 +186,24 @@ class Player extends THREE.Mesh {
         }
     }
 
-    update(deltaTime, keys, obstacles, cursorWorld, scene) {
+    /**
+     * Updates the player's state, including movement and combat mode visuals.
+     * @param {number} deltaTime - The time elapsed since the last frame.
+     * @param {object} keys - Object containing current key states.
+     * @param {Array<THREE.Mesh>} obstacles - Array of Three.js obstacle meshes.
+     * @param {THREE.Vector3} cursorWorld - The 3D world coordinates of the mouse cursor.
+     * @param {THREE.Scene} scene - The Three.js scene.
+     * @param {CANNON.Body} playerBody - The Cannon.js body associated with the player.
+     */
+    update(deltaTime, keys, obstacles, cursorWorld, scene, playerBody) {
         if (this.mixer) this.mixer.update(deltaTime);
-        this.move(deltaTime, keys, obstacles);
+        this.move(deltaTime, keys, obstacles, playerBody); // Pass playerBody to move function
         this.updateActivationRangeRing();
 
         if (this.isCombatMode) {
             this.createCursorIndicator(scene, cursorWorld);
             this.updateCursorIndicator(cursorWorld);
-        } else {
-            this.removeCursorIndicator(scene);
-        }
-        // Update the rotor's rotation
-        if (this.isCombatMode) {
-            this.updateRotorRotation(cursorWorld);  
-            this.createCursorIndicator(scene, cursorWorld);
-            this.updateCursorIndicator(cursorWorld);
+            this.updateRotorRotation(cursorWorld); // Update rotor rotation in combat mode
         } else {
             this.removeCursorIndicator(scene);
         }
