@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import Player from './player.js';
+import { Enemy, spawnEnemy, ENEMY_SIZE, ENEMY_SPEED_PER_SEC, ENEMY_COLOR } from './enemy.js';
 
 // --- Game Constants ---
 const GRID_SIZE = 50;
@@ -9,11 +10,7 @@ const PLAYER_SPEED = 5.0; // Units per second
 const PLAYER_NORMAL_COLOR = 0x4488ff; // Brighter Blue
 const PLAYER_ACTIVE_COLOR = 0xff4444; // Brighter Red
 
-const ENEMY_SIZE = 0.5;
-const ENEMY_COLOR = 0x993399; // Darker Purple
-const ENEMY_SPEED_PER_SEC = 1.0; // Units per second
 const ENEMY_SPAWN_INTERVAL = 2000; // ms
-const ENEMY_SPAWN_RADIUS_FACTOR = 1.0;
 
 const OBSTACLE_WALL_COLOR = 0x666666;
 const OBSTACLE_RANDOM_COLOR = 0x5070C0;
@@ -134,27 +131,6 @@ player.loadModel(scene);
 
 // --- Enemies ---
 const enemies = [];
-const enemyMaterial = new THREE.MeshStandardMaterial({ color: ENEMY_COLOR, roughness: 0.6, metalness: 0.1 });
-
-function spawnEnemy() {
-  if (gameOver) return;
-  const enemyGeo = new THREE.BoxGeometry(ENEMY_SIZE, ENEMY_SIZE, ENEMY_SIZE);
-  const enemy = new THREE.Mesh(enemyGeo, enemyMaterial);
-  enemy.castShadow = true;
-  enemy.receiveShadow = true;
-
-  let angle = Math.random() * Math.PI * 2;
-  let radius = (GRID_SIZE / 2) * ENEMY_SPAWN_RADIUS_FACTOR;
-  let x = player.position.x + Math.cos(angle) * radius;
-  let z = player.position.z + Math.sin(angle) * radius;
-
-  x = Math.max(-GRID_SIZE / 2 + ENEMY_SIZE, Math.min(GRID_SIZE / 2 - ENEMY_SIZE, x));
-  z = Math.max(-GRID_SIZE / 2 + ENEMY_SIZE, Math.min(GRID_SIZE / 2 - ENEMY_SIZE, z));
-
-  enemy.position.set(x, ENEMY_SIZE / 2, z);
-  scene.add(enemy);
-  enemies.push(enemy);
-}
 
 // --- Active Shots ---
 const activeShots = [];
@@ -235,28 +211,8 @@ function updateEnemies(deltaTime) {
   if (gameOver) return;
   for (let i = enemies.length - 1; i >= 0; i--) {
     const enemy = enemies[i];
-    const directionToPlayer = new THREE.Vector3().subVectors(player.position, enemy.position);
-    if (directionToPlayer.lengthSq() < 0.01) continue;
-    directionToPlayer.normalize();
-    const moveDistance = ENEMY_SPEED_PER_SEC * deltaTime;
-    const moveVector = directionToPlayer.clone().multiplyScalar(moveDistance);
-    const nextPos = enemy.position.clone().add(moveVector);
-    let collidesWithObstacle = false;
-    const enemyHalfSize = ENEMY_SIZE / 2;
-    for (const obs of obstacles) {
-      const obsParams = obs.geometry.parameters;
-      const obsHalfWidth = obsParams.width / 2;
-      const obsHalfDepth = obsParams.depth / 2;
-      if (Math.abs(obs.position.x - nextPos.x) < (enemyHalfSize + obsHalfWidth) &&
-          Math.abs(obs.position.z - nextPos.z) < (enemyHalfSize + obsHalfDepth)) {
-        collidesWithObstacle = true;
-        break;
-      }
-    }
-    if (!collidesWithObstacle) {
-      enemy.position.copy(nextPos);
-    }
-    if (enemy.position.distanceTo(player.position) < (PLAYER_SIZE / 2 + ENEMY_SIZE / 2)) {
+    const collidedWithPlayer = enemy.update(deltaTime, player.position, obstacles, GRID_SIZE);
+    if (collidedWithPlayer) {
       gameOver = true;
       document.getElementById('game-over-message').style.display = 'block';
       player.exitCombatMode(scene);
@@ -274,7 +230,7 @@ function updateActiveShots() {
       const enemy = enemies[j];
       if (shot.position.distanceTo(enemy.position) < SHOT_RADIUS) {
         scene.remove(enemy);
-        if (enemy.geometry) enemy.geometry.dispose();
+        enemy.dispose(); // Dispose of enemy resources
         enemies.splice(j, 1);
         score++;
         document.getElementById('score').innerText = `Score: ${score}`;
@@ -347,7 +303,9 @@ function animate() {
     }
     enemySpawnTimer -= deltaTime * 1000;
     if (enemySpawnTimer <= 0) {
-      spawnEnemy();
+      // Spawn a new enemy using the function from enemy.js
+      const newEnemy = spawnEnemy(scene, player.position, GRID_SIZE);
+      enemies.push(newEnemy);
       enemySpawnTimer = ENEMY_SPAWN_INTERVAL;
     }
   }
