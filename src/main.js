@@ -101,22 +101,41 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
   let cursorIndicator = null; // New cursor indicator
 
   // --- Player Cube ---
+  let mixer, siegeAction, siegeREAction;
+  //let clock = new THREE.Clock();
+
   const loader = new GLTFLoader();
-  loader.load('/assets/cube.glb',
+  loader.load('/assets/tank.glb',
     (gltf) => {
-      const model = gltf.scene;
-      model.scale.set(0.3, 0.3, 0.3);
-      scene.add(model);
+      const tank = gltf.scene;
+      tank.scale.set(0.3, 0.3, 0.3);
+      scene.add(tank);
+      playerModel.add(tank); // Eltern-Kind-Verknüpfung
+
+      mixer = new THREE.AnimationMixer(model);
+      const animations = gltf.animations;
+
+      // Animations benennen
+      siegeAction = mixer.clipAction(animations.find(clip => clip.name === 'SiegeMode'));
+      siegeREAction = mixer.clipAction(animations.find(clip => clip.name === 'SiegeModeRE'));
+
+      // Alle Animationen vorbereiten: Einmal abspielen, nicht loopen, letzte Pose beibehalten
+      [siegeAction, siegeREAction].forEach(action => {
+          action.setLoop(THREE.LoopOnce);
+          action.clampWhenFinished = true;
+          action.enable = true;
+    });
     },
   );
-
   const playerMaterial = new THREE.MeshStandardMaterial({ color: PLAYER_NORMAL_COLOR, roughness: 0.4, metalness: 0.1 });
   const playerGeometry = new THREE.BoxGeometry(PLAYER_SIZE, PLAYER_SIZE, PLAYER_SIZE);
-  const playerCube = new THREE.Mesh(playerGeometry, playerMaterial);
-  playerCube.position.set(0, PLAYER_SIZE / 2, 0);
-  playerCube.castShadow = true;
-  playerCube.receiveShadow = true; // Can receive shadows from taller obstacles
-  scene.add(playerCube);
+  const playerModel = new THREE.Mesh(playerGeometry, playerMaterial);
+  playerModel.position.set(0, PLAYER_SIZE / 2, 0);
+  playerModel.castShadow = true;
+  playerModel.receiveShadow = true; // Can receive shadows from taller obstacles
+  scene.add(playerModel);
+
+ 
 
   
 
@@ -177,8 +196,8 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
   // Ensure enemies spawn within the map boundaries
   let angle = Math.random() * Math.PI * 2;
   let radius = (GRID_SIZE / 2) * ENEMY_SPAWN_RADIUS_FACTOR;
-  let x = playerCube.position.x + Math.cos(angle) * radius;
-  let z = playerCube.position.z + Math.sin(angle) * radius;
+  let x = playerModel.position.x + Math.cos(angle) * radius;
+  let z = playerModel.position.z + Math.sin(angle) * radius;
 
   x = Math.max(-GRID_SIZE / 2 + ENEMY_SIZE, Math.min(GRID_SIZE / 2 - ENEMY_SIZE, x));
   z = Math.max(-GRID_SIZE / 2 + ENEMY_SIZE, Math.min(GRID_SIZE / 2 - ENEMY_SIZE, z));
@@ -198,7 +217,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
   keys[e.key.toLowerCase()] = true;
   if (e.key === ' ' && !gameOver) {
   activeMode = !activeMode;
-  playerCube.material.color.setHex(activeMode ? PLAYER_ACTIVE_COLOR : PLAYER_NORMAL_COLOR);
+  playerModel.material.color.setHex(activeMode ? PLAYER_ACTIVE_COLOR : PLAYER_NORMAL_COLOR);
   if (activeMode) {
   if (!activationRangeRing) {
   const ringGeo = new THREE.RingGeometry(SHOT_RANGE - 0.15, SHOT_RANGE, 64);
@@ -206,7 +225,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
   activationRangeRing = new THREE.Mesh(ringGeo, ringMat);
   activationRangeRing.rotation.x = -Math.PI / 2;
   }
-  activationRangeRing.position.set(playerCube.position.x, 0.02, playerCube.position.z);
+  activationRangeRing.position.set(playerModel.position.x, 0.02, playerModel.position.z);
   scene.add(activationRangeRing);
   } else {
   if (activationRangeRing) {
@@ -258,7 +277,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
   raycaster.setFromCamera(mouse, camera);
   const intersectPoint = new THREE.Vector3();
   if (raycaster.ray.intersectPlane(groundPlaneRay, intersectPoint)) {
-  const distanceToTarget = intersectPoint.distanceTo(playerCube.position);
+  const distanceToTarget = intersectPoint.distanceTo(playerModel.position);
   if (distanceToTarget > SHOT_RANGE) return;
 
   canShoot = false;
@@ -278,7 +297,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
   position: shotCircle.position.clone()
   });
 
-  lastShotDirection.subVectors(intersectPoint, playerCube.position).normalize();
+  lastShotDirection.subVectors(intersectPoint, playerModel.position).normalize();
   lastShotDirection.y = 0;
 
   // Create explosion particles with delay
@@ -303,8 +322,8 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
   const moveVector = new THREE.Vector2(dx, dz).normalize();
   const moveAmount = PLAYER_SPEED * deltaTime;
 
-  const newX = playerCube.position.x + moveVector.x * moveAmount;
-  const newZ = playerCube.position.z + moveVector.y * moveAmount;
+  const newX = playerModel.position.x + moveVector.x * moveAmount;
+  const newZ = playerModel.position.z + moveVector.y * moveAmount;
 
   let collision = false;
   const playerHalfSize = PLAYER_SIZE / 2;
@@ -320,21 +339,21 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
   }
 
   if (!collision) {
-  playerCube.position.x = newX;
-  playerCube.position.z = newZ;
+  playerModel.position.x = newX;
+  playerModel.position.z = newZ;
   if (moveVector.x !== 0 || moveVector.y !== 0) {
-  playerCube.rotation.y = Math.atan2(moveVector.x, moveVector.y);
+  playerModel.rotation.y = Math.atan2(moveVector.x, moveVector.y);
   }
   }
   }
 
   function updateAimingCone() {
-  aimingCone.position.set(playerCube.position.x, playerCube.position.y + PLAYER_SIZE * 0.7, playerCube.position.z); // Slightly lower
+  aimingCone.position.set(playerModel.position.x, playerModel.position.y + PLAYER_SIZE * 0.7, playerModel.position.z); // Slightly lower
   let direction;
   if (activeMode && !gameOver) {
   direction = lastShotDirection.clone();
   } else if (!gameOver) {
-  direction = new THREE.Vector3().subVectors(cursorWorld, playerCube.position);
+  direction = new THREE.Vector3().subVectors(cursorWorld, playerModel.position);
   direction.y = 0;
   if (direction.lengthSq() > 0) direction.normalize(); else direction.set(0,0,-1); // Default if no mouse movement yet
   } else {
@@ -342,7 +361,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
   }
 
   if (direction.lengthSq() > 0.001) {
-  const targetPos = new THREE.Vector3().addVectors(playerCube.position, direction);
+  const targetPos = new THREE.Vector3().addVectors(playerModel.position, direction);
   aimingCone.lookAt(targetPos);
   }
   }
@@ -356,7 +375,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
   for (let i = enemies.length - 1; i >= 0; i--) {
   const enemy = enemies[i];
-  const directionToPlayer = new THREE.Vector3().subVectors(playerCube.position, enemy.position);
+  const directionToPlayer = new THREE.Vector3().subVectors(playerModel.position, enemy.position);
 
   if (directionToPlayer.lengthSq() < 0.01) continue; // Too close
   directionToPlayer.normalize();
@@ -382,7 +401,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
   enemy.position.copy(nextPos);
   }
 
-  if (enemy.position.distanceTo(playerCube.position) < (PLAYER_SIZE / 2 + ENEMY_SIZE / 2)) {
+  if (enemy.position.distanceTo(playerModel.position) < (PLAYER_SIZE / 2 + ENEMY_SIZE / 2)) {
   gameOver = true;
   document.getElementById('game-over-message').style.display = 'block';
   if (activationRangeRing && scene.children.includes(activationRangeRing)) {
@@ -466,47 +485,62 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
   // --- Animation Loop ---
   function animate() {
-  requestAnimationFrame(animate);
-  const deltaTime = clock.getDelta();
+    requestAnimationFrame(animate);
+    const deltaTime = clock.getDelta();
 
-  if (!gameOver) {
-  movePlayer(deltaTime);
-  if (shotCooldownTimer > 0) {
-  shotCooldownTimer -= deltaTime;
-  updateCooldownBar(1 - (shotCooldownTimer / SHOT_COOLDOWN_S));
-  if (shotCooldownTimer <= 0) {
-  canShoot = true;
-  shotCooldownTimer = 0;
-  updateCooldownBar(1);
-  }
-  }
-  enemySpawnTimer -= deltaTime * 1000;
-  if (enemySpawnTimer <= 0) {
-  spawnEnemy();
-  enemySpawnTimer = ENEMY_SPAWN_INTERVAL;
-  }
+    if (mixer) mixer.update(delta);
+    renderer.render(scene, camera);
+
+    if (!gameOver) {
+    movePlayer(deltaTime);
+    if (shotCooldownTimer > 0) {
+    shotCooldownTimer -= deltaTime;
+    updateCooldownBar(1 - (shotCooldownTimer / SHOT_COOLDOWN_S));
+    if (shotCooldownTimer <= 0) {
+    canShoot = true;
+    shotCooldownTimer = 0;
+    updateCooldownBar(1);
+    }
+    }
+    enemySpawnTimer -= deltaTime * 1000;
+    if (enemySpawnTimer <= 0) {
+    spawnEnemy();
+    enemySpawnTimer = ENEMY_SPAWN_INTERVAL;
+    }
+    }
+
+    updateAimingCone();
+    if (activationRangeRing && activeMode && !gameOver) {
+    activationRangeRing.position.set(playerModel.position.x, 0.02, playerModel.position.z);
+    } else if (activationRangeRing && (!activeMode || gameOver) && scene.children.includes(activationRangeRing)) {
+    scene.remove(activationRangeRing);
+    if(activationRangeRing.geometry) activationRangeRing.geometry.dispose();
+    if(activationRangeRing.material) activationRangeRing.material.dispose();
+    activationRangeRing = null;
+    }
+
+    updateEnemies(deltaTime);
+    updateActiveShots();
+    updateExplosions(deltaTime);
+
+    camera.position.set(playerModel.position.x, playerModel.position.y + CAMERA_Y_OFFSET, playerModel.position.z + CAMERA_Z_OFFSET);
+    camera.lookAt(playerModel.position);
+
+    renderer.render(scene, camera);
   }
 
-  updateAimingCone();
-  if (activationRangeRing && activeMode && !gameOver) {
-  activationRangeRing.position.set(playerCube.position.x, 0.02, playerCube.position.z);
-  } else if (activationRangeRing && (!activeMode || gameOver) && scene.children.includes(activationRangeRing)) {
-  scene.remove(activationRangeRing);
-  if(activationRangeRing.geometry) activationRangeRing.geometry.dispose();
-  if(activationRangeRing.material) activationRangeRing.material.dispose();
-  activationRangeRing = null;
+
+  // Kampfmodus aktivieren
+  function enterCombatMode() {
+      if (siegeREAction) siegeREAction.stop();
+      if (siegeAction) siegeAction.reset().play();
   }
 
-  updateEnemies(deltaTime);
-  updateActiveShots();
-  updateExplosions(deltaTime);
-
-  camera.position.set(playerCube.position.x, playerCube.position.y + CAMERA_Y_OFFSET, playerCube.position.z + CAMERA_Z_OFFSET);
-  camera.lookAt(playerCube.position);
-
-  renderer.render(scene, camera);
+  // Fahrmodus aktivieren
+  function enterDriveMode() {
+      if (siegeAction) siegeAction.stop();
+      if (siegeREAction) siegeREAction.reset().play();
   }
-
   // --- Window Resize ---
   window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
