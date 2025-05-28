@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import Player from './player.js';
 import { Explosion } from './explosion.js';
 import * as CANNON from 'cannon-es'; // Import cannon-es
+import { spawnEnemy } from './enemy.js';
 
 // --- Game Constants ---
 const GRID_SIZE = 50;
@@ -205,7 +206,7 @@ const enemyMaterial = new THREE.MeshStandardMaterial({
   metalness: 0.1
 });
 
-function spawnEnemy() {
+/* function spawnEnemy() {
   if (gameOver) return;
   const enemyGeo = new THREE.BoxGeometry(ENEMY_SIZE, ENEMY_SIZE, ENEMY_SIZE);
   const enemyMesh = new THREE.Mesh(enemyGeo, enemyMaterial);
@@ -231,7 +232,9 @@ function spawnEnemy() {
   enemyBody.position.set(x, ENEMY_SIZE / 2, z);
   world.addBody(enemyBody);
   enemyBodies.push({ mesh: enemyMesh, body: enemyBody });
-}
+} */
+
+
 
 // --- Active Shots & Explosions ---
 const activeShots = [];
@@ -402,7 +405,7 @@ function animate() {
 
     enemySpawnTimer -= deltaTime * 1000;
     if (enemySpawnTimer <= 0) {
-      spawnEnemy();
+      spawnEnemy(scene, player.position, GRID_SIZE);
       enemySpawnTimer = ENEMY_SPAWN_INTERVAL;
     }
   }
