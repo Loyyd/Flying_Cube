@@ -38,6 +38,7 @@ class Player extends THREE.Mesh {
         this.canMove = true;
         this.targetRotationY = this.rotation.y; // Store the target rotation
         this.rotorBone = null;
+        this.targetQuaternion = new THREE.Quaternion();
     }
 
 
@@ -76,56 +77,49 @@ class Player extends THREE.Mesh {
      * @param {CANNON.Body} playerBody - The Cannon.js body associated with the player.
      */
     move(deltaTime, keys, playerBody) {
-    if (this.isCombatMode || !this.canMove) {
-        playerBody.velocity.set(0, playerBody.velocity.y, 0);
-        return;
-    }
-
-    let dx = 0;
-    let dz = 0;
-    if (keys['w']) dz -= 1;
-    if (keys['s']) dz += 1;
-    if (keys['a']) dx -= 1;
-    if (keys['d']) dx += 1;
-
-    const moveVector = new THREE.Vector3(dx, 0, dz);
-
-    if (moveVector.lengthSq() > 0) {
-        moveVector.normalize();
-
-        // Wake up the player body if it is asleep
-        if (playerBody.sleepState === CANNON.Body.SLEEPING) {
-            playerBody.wakeUp();
+        if (this.isCombatMode || !this.canMove) {
+            playerBody.velocity.set(0, playerBody.velocity.y, 0);
+            return;
         }
-        
-        playerBody.velocity.set(
-            moveVector.x * this.speed,
-            playerBody.velocity.y,
-            moveVector.z * this.speed
-        );
 
-        // Calculate the target rotation
-        let targetRotationY = Math.atan2(moveVector.x, moveVector.z);
+        let dx = 0;
+        let dz = 0;
+        if (keys['w']) dz -= 1;
+        if (keys['s']) dz += 1;
+        if (keys['a']) dx -= 1;
+        if (keys['d']) dx += 1;
 
-        // Normalize angles to ensure shortest rotation
-        let currentRotationY = this.rotation.y % (Math.PI * 2);
-        let diff = targetRotationY - currentRotationY;
-        if (diff > Math.PI) {
-            diff -= Math.PI * 2;
-        } else if (diff < -Math.PI) {
-            diff += Math.PI * 2;
+        const moveVector = new THREE.Vector3(dx, 0, dz);
+
+        if (moveVector.lengthSq() > 0) {
+            moveVector.normalize();
+
+            // Wake up the player body if it is asleep
+            if (playerBody.sleepState === CANNON.Body.SLEEPING) {
+                playerBody.wakeUp();
+            }
+            
+            playerBody.velocity.set(
+                moveVector.x * this.speed,
+                playerBody.velocity.y,
+                moveVector.z * this.speed
+            );
+
+            // Calculate the target rotation
+            let targetRotationY = Math.atan2(moveVector.x, moveVector.z);
+
+            // Normalize angles to ensure shortest rotation
+            let currentRotationY = this.rotation.y % (Math.PI * 2);
+            let diff = targetRotationY - currentRotationY;
+            if (diff > Math.PI) {
+                diff -= Math.PI * 2;
+            } else if (diff < -Math.PI) {
+                diff += Math.PI * 2;
+            }
+            this.targetRotationY = currentRotationY + diff;
+        } else {
+            playerBody.velocity.set(0, playerBody.velocity.y, 0);
         }
-        targetRotationY = currentRotationY + diff;
-
-        this.targetRotationY = targetRotationY;
-
-
-    } else {
-        playerBody.velocity.set(0, playerBody.velocity.y, 0);
-    }
-
-    // Smoothly rotate towards the target rotation
-    this.rotation.y = THREE.MathUtils.lerp(this.rotation.y, this.targetRotationY, deltaTime * ROTATION_SPEED);
 }
 
     /**
@@ -268,6 +262,9 @@ class Player extends THREE.Mesh {
         this.move(deltaTime, keys, playerBody);
         this.updateActivationRangeRing();
 
+        this.targetQuaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), this.targetRotationY);
+        this.quaternion.slerp(this.targetQuaternion, deltaTime * ROTATION_SPEED);
+
         if (this.isCombatMode) {
             this.createCursorIndicator(scene, cursorWorld);
             this.updateCursorIndicator(cursorWorld);
@@ -275,6 +272,7 @@ class Player extends THREE.Mesh {
         } else {
             this.removeCursorIndicator(scene);
         }
+        this.quaternion.slerp(this.targetQuaternion, deltaTime * ROTATION_SPEED); // Use slerp for smooth quaternion interpolation
     }
 }
 
