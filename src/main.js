@@ -1,8 +1,10 @@
 import * as THREE from 'three';
 import Player from './player.js';
+import { SHOT_RANGE, SHOT_RADIUS, SHOT_EFFECT_DURATION_S, SHOT_COOLDOWN_S, SHOT_ACTIVE_COLOR, EXPLOSION_DELAY_S } from './player.js';
 import { Explosion } from './explosion.js';
 import * as CANNON from 'cannon-es'; // Import cannon-es
 import CameraManager from './camera.js'; // Import your CameraManager
+
 
 // --- Game Constants ---
 const GRID_SIZE = 50;
@@ -12,20 +14,13 @@ const OBSTACLE_WALL_COLOR = 0x666666;
 const OBSTACLE_RANDOM_COLOR = 0x5070C0;
 const NUM_RANDOM_OBSTACLES = 50;
 
-const SHOT_ACTIVE_COLOR = 0xff0000;
-const SHOT_RADIUS = 2;
-const SHOT_RANGE = 10;
-const SHOT_EFFECT_DURATION_S = 2.0;
-const SHOT_COOLDOWN_S = 0.5;
-const EXPLOSION_DELAY_S = 0.3;
-
 const SCENE_BACKGROUND_COLOR = 0x282c34;
 
 // --- Scene Setup ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(SCENE_BACKGROUND_COLOR);
 scene.fog = new THREE.FogExp2(
-  SCENE_BACKGROUND_COLOR, 0.05
+  SCENE_BACKGROUND_COLOR, 0.01
 );
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -176,7 +171,7 @@ world.addBody(playerBody);
 
 // --- Active Shots & Explosions ---
 const activeShots = [];
-const explosions = []; // Now stores Explosion instances
+const explosions = []; 
 
 // --- Input Handling ---
 const keys = {};
@@ -249,7 +244,7 @@ renderer.domElement.addEventListener('click', (event) => {
 
 // --- Explosion Creation (modular) ---
 function createExplosion(position) {
-  explosions.push(new Explosion(position, scene));
+  explosions.push(new Explosion(position, scene, world)); // Pass the world instance
 }
 
 // --- Game Logic Functions ---
@@ -315,8 +310,6 @@ function animate() {
   renderer.render(scene, camera);
   
 }
-
-
 
 // --- Window Resize ---
 window.addEventListener('resize', () => {

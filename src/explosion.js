@@ -1,4 +1,31 @@
 import * as THREE from 'three';
+import * as CANNON from 'cannon-es'; // Ensure CANNON.js is imported
+
+// Constants
+const GRAVITY = -9.8;
+const MAX_TRAIL_LENGTH = 8;
+
+// Toggle options
+const ENABLE_FIRE = false;
+const ENABLE_SPARK = true;
+const ENABLE_SMOKE = false;
+
+// Particle counts
+const FIRE_PARTICLE_COUNT = 12;
+const SPARK_PARTICLE_COUNT = 20;
+const SMOKE_PARTICLE_COUNT = 9;
+
+// Opacity decay rates
+const FIRE_OPACITY_DECAY = 0.97;
+const SPARK_OPACITY_DECAY = 0.93;
+
+// Velocity multipliers
+const SMOKE_VELOCITY_MULTIPLIER = 0.96;
+const FIRE_VELOCITY_MULTIPLIER = 0.95;
+
+// Spark properties
+const SPARK_SIZE_RANGE = { min: 1.0, max: 2.0 };
+const SPARK_LIFETIME_RANGE = { min: 0.3, max: 0.6 };
 
 // Helper: Random float in range
 function randomRange(a, b) {
@@ -33,8 +60,8 @@ class ExplosionParticle {
         break;
       case "spark":
         this.color = new THREE.Color(0xffee88).lerp(new THREE.Color(0xffdd33), Math.random());
-        this.size = randomRange(0.15, 0.25);
-        this.lifetime = randomRange(0.2, 0.5);
+        this.size = randomRange(SPARK_SIZE_RANGE.min, SPARK_SIZE_RANGE.max);
+        this.lifetime = randomRange(SPARK_LIFETIME_RANGE.min, SPARK_LIFETIME_RANGE.max);
         this.velocity = new THREE.Vector3(
           randomRange(-4, 4), randomRange(3, 8), randomRange(-4, 4)
         );
@@ -49,24 +76,24 @@ class ExplosionParticle {
   }
 
   // Call after mesh assignment!
-  update(delta, gravity = -9.8) {
+  update(delta) {
     this.trail.push(this.position.clone());
-    while (this.trail.length > 8) this.trail.shift();
+    while (this.trail.length > MAX_TRAIL_LENGTH) this.trail.shift();
 
     this.age += delta;
     this.lastPosition.copy(this.position);
 
     // Physics
     if (this.type === "smoke") {
-      this.velocity.multiplyScalar(0.96); // Slow drift
+      this.velocity.multiplyScalar(SMOKE_VELOCITY_MULTIPLIER); // Slow drift
     }
     if (this.type === "fire") {
-      this.velocity.multiplyScalar(0.95);
-      this.opacity *= 0.97;
+      this.velocity.multiplyScalar(FIRE_VELOCITY_MULTIPLIER);
+      this.opacity *= FIRE_OPACITY_DECAY;
     }
     if (this.type === "spark") {
-      this.velocity.y += gravity * delta * 2.5;
-      this.opacity *= 0.93;
+      this.velocity.y += GRAVITY * delta * 2.5;
+      this.opacity *= SPARK_OPACITY_DECAY;
     }
 
     this.position.addScaledVector(this.velocity, delta);
@@ -86,37 +113,70 @@ class ExplosionParticle {
 }
 
 export class Explosion {
-  constructor(position, scene) {
+  constructor(position, scene, world) {
     this.position = position.clone();
     this.scene = scene;
+    this.world = world; // CANNON.js world
     this.particles = [];
 
     // Emit fire
-    for (let i = 0; i < 12; i++) {
-      let p = new ExplosionParticle("fire", this.position);
-      p.mesh = this.makeSprite(p.color, p.size, p.opacity, "fire");
-      scene.add(p.mesh);
-      this.particles.push(p);
+    if (ENABLE_FIRE) {
+      for (let i = 0; i < FIRE_PARTICLE_COUNT; i++) {
+        let p = new ExplosionParticle("fire", this.position);
+        p.mesh = this.makeSprite(p.color, p.size, p.opacity, "fire");
+        scene.add(p.mesh);
+        this.particles.push(p);
+      }
     }
 
     // Emit sparks
-    for (let i = 0; i < 16; i++) {
-      let p = new ExplosionParticle("spark", this.position);
-      p.mesh = this.makeSprite(p.color, p.size, p.opacity, "spark");
-      scene.add(p.mesh);
-      this.particles.push(p);
+    if (ENABLE_SPARK) {
+      for (let i = 0; i < SPARK_PARTICLE_COUNT; i++) {
+        let p = new ExplosionParticle("spark", this.position);
+        p.mesh = this.makeSprite(p.color, p.size, p.opacity, "spark");
+        scene.add(p.mesh);
+        this.particles.push(p);
+      }
     }
 
     // Emit smoke
-    for (let i = 0; i < 9; i++) {
-      let p = new ExplosionParticle("smoke", this.position);
-      p.mesh = this.makeSprite(p.color, p.size, p.opacity, "smoke");
-      scene.add(p.mesh);
-      this.particles.push(p);
+    if (ENABLE_SMOKE) {
+      for (let i = 0; i < SMOKE_PARTICLE_COUNT; i++) {
+        let p = new ExplosionParticle("smoke", this.position);
+        p.mesh = this.makeSprite(p.color, p.size, p.opacity, "smoke");
+        scene.add(p.mesh);
+        this.particles.push(p);
+      }
     }
+
+    // Apply impulse to nearby rigid bodies
+    this.applyImpulseToRigidBodies();
 
     // Trails are rendered as lines, stored as {line, particle} objects
     this.trails = [];
+  }
+
+  applyImpulseToRigidBodies() {
+    const explosionForce = 3; // Strength of the explosion
+    const explosionRadius = 3; // Radius of the explosion effect
+
+    this.world.bodies.forEach(body => {
+      if (body.position) {
+        const bodyPosition = new CANNON.Vec3(body.position.x, body.position.y, body.position.z);
+        const explosionPosition = new CANNON.Vec3(this.position.x, this.position.y, this.position.z);
+
+        const distance = bodyPosition.distanceTo(explosionPosition);
+
+        if (distance < explosionRadius) {
+          const forceDirection = bodyPosition.vsub(explosionPosition); // Subtract positions
+          forceDirection.normalize(); // Normalize the direction vector
+          const forceMagnitude = explosionForce * (1 - distance / explosionRadius); // Decrease force with distance
+          const impulse = forceDirection.scale(forceMagnitude); // Scale the normalized vector
+
+          body.applyImpulse(impulse, bodyPosition);
+        }
+      }
+    });
   }
 
   makeSprite(color, size, opacity, type) {

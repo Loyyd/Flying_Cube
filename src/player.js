@@ -5,11 +5,19 @@ import * as CANNON from 'cannon-es';
 // SETTINGS
 const PLAYER_SPEED = 5.0;
 const SHOT_RANGE = 10;
+const SHOT_RADIUS = 2;
+const SHOT_EFFECT_DURATION_S = 2.0;
+const SHOT_COOLDOWN_S = 0.5;
+const SHOT_ACTIVE_COLOR = 0xff0000;
+const EXPLOSION_DELAY_S = 0.3;
+
 const RING_THICKNESS = 0.15;
 const RING_OPACITY = 0.4;
 const CURSOR_INDICATOR_RADIUS = 0.5;
 const CURSOR_INDICATOR_SEGMENTS = 16;
 const CURSOR_INDICATOR_OPACITY = 0.8;
+
+
 
 // Neue Einstellung für die Rotationsgeschwindigkeit
 const ROTATION_SPEED = 5.0; // Adjust this value to control rotation speed
@@ -271,3 +279,4 @@ class Player extends THREE.Mesh {
 }
 
 export default Player;
+export{SHOT_RANGE, SHOT_RADIUS, SHOT_EFFECT_DURATION_S, SHOT_COOLDOWN_S, SHOT_ACTIVE_COLOR, EXPLOSION_DELAY_S};
