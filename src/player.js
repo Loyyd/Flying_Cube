@@ -54,10 +54,9 @@ class Player extends THREE.Mesh {
      * Moves the player using Cannon.js physics (kinematic body).
      * @param {number} deltaTime - The time elapsed since the last frame.
      * @param {object} keys - Object containing current key states.
-     * @param {Array<THREE.Mesh>} obstacles - Array of Three.js obstacle meshes (not directly used for collision here, but kept for consistency).
      * @param {CANNON.Body} playerBody - The Cannon.js body associated with the player.
      */
-    move(deltaTime, keys, obstacles, playerBody) {
+    move(deltaTime, keys, playerBody) {
         if (this.isCombatMode) {
             // Stop movement when in combat mode
             playerBody.velocity.set(0, playerBody.velocity.y, 0);
@@ -190,14 +189,13 @@ class Player extends THREE.Mesh {
      * Updates the player's state, including movement and combat mode visuals.
      * @param {number} deltaTime - The time elapsed since the last frame.
      * @param {object} keys - Object containing current key states.
-     * @param {Array<THREE.Mesh>} obstacles - Array of Three.js obstacle meshes.
      * @param {THREE.Vector3} cursorWorld - The 3D world coordinates of the mouse cursor.
      * @param {THREE.Scene} scene - The Three.js scene.
      * @param {CANNON.Body} playerBody - The Cannon.js body associated with the player.
      */
-    update(deltaTime, keys, obstacles, cursorWorld, scene, playerBody) {
+    update(deltaTime, keys, cursorWorld, scene, playerBody) {
         if (this.mixer) this.mixer.update(deltaTime);
-        this.move(deltaTime, keys, obstacles, playerBody); // Pass playerBody to move function
+        this.move(deltaTime, keys, playerBody); // Pass playerBody to move function
         this.updateActivationRangeRing();
 
         if (this.isCombatMode) {

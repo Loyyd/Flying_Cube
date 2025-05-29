@@ -3,7 +3,6 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import Player from './player.js';
 import { Explosion } from './explosion.js';
 import * as CANNON from 'cannon-es'; // Import cannon-es
-import { spawnEnemy } from './enemy.js';
 
 // --- Game Constants ---
 const GRID_SIZE = 50;
@@ -11,12 +10,6 @@ const PLAYER_SIZE = 1;
 const PLAYER_SPEED = 5.0;
 const PLAYER_NORMAL_COLOR = 0x4488ff;
 const PLAYER_ACTIVE_COLOR = 0xff4444;
-
-const ENEMY_SIZE = 0.5;
-const ENEMY_COLOR = 0x993399;
-const ENEMY_SPEED_PER_SEC = 1.0; // Adjusted: Increased enemy speed for more noticeable movement
-const ENEMY_SPAWN_INTERVAL = 2000;
-const ENEMY_SPAWN_RADIUS_FACTOR = 1.0;
 
 const OBSTACLE_WALL_COLOR = 0x666666;
 const OBSTACLE_RANDOM_COLOR = 0x5070C0;
@@ -109,7 +102,6 @@ let canShoot = true;
 let score = 0;
 let gameOver = false;
 let shotCooldownTimer = 0;
-let enemySpawnTimer = ENEMY_SPAWN_INTERVAL;
 
 // --- Ground Plane ---
 const groundGeometry = new THREE.PlaneGeometry(GRID_SIZE, GRID_SIZE);
@@ -196,46 +188,6 @@ playerBody.addShape(playerShape);
 playerBody.position.set(player.position.x, player.position.y, player.position.z);
 world.addBody(playerBody);
 
-// --- Enemies ---
-const enemies = [];
-const enemyBodies = []; // Array to hold Cannon.js bodies for enemies
-
-const enemyMaterial = new THREE.MeshStandardMaterial({
-  color: ENEMY_COLOR,
-  roughness: 0.6,
-  metalness: 0.1
-});
-
-/* function spawnEnemy() {
-  if (gameOver) return;
-  const enemyGeo = new THREE.BoxGeometry(ENEMY_SIZE, ENEMY_SIZE, ENEMY_SIZE);
-  const enemyMesh = new THREE.Mesh(enemyGeo, enemyMaterial);
-  enemyMesh.castShadow = true;
-  enemyMesh.receiveShadow = true;
-
-  let angle = Math.random() * Math.PI * 2;
-  let radius = (GRID_SIZE / 2) * ENEMY_SPAWN_RADIUS_FACTOR;
-  let x = player.position.x + Math.cos(angle) * radius;
-  let z = player.position.z + Math.sin(angle) * radius;
-
-  x = Math.max(-GRID_SIZE / 2 + ENEMY_SIZE, Math.min(GRID_SIZE / 2 - ENEMY_SIZE, x));
-  z = Math.max(-GRID_SIZE / 2 + ENEMY_SIZE, Math.min(GRID_SIZE / 2 - ENEMY_SIZE, z));
-
-  enemyMesh.position.set(x, ENEMY_SIZE / 2, z);
-  scene.add(enemyMesh);
-  enemies.push(enemyMesh);
-
-  // Create Cannon.js body for the enemy - now KINEMATIC
-  const enemyShape = new CANNON.Box(new CANNON.Vec3(ENEMY_SIZE / 2, ENEMY_SIZE / 2, ENEMY_SIZE / 2));
-  const enemyBody = new CANNON.Body({ type: CANNON.Body.KINEMATIC, material: defaultMaterial }); // Changed to KINEMATIC
-  enemyBody.addShape(enemyShape);
-  enemyBody.position.set(x, ENEMY_SIZE / 2, z);
-  world.addBody(enemyBody);
-  enemyBodies.push({ mesh: enemyMesh, body: enemyBody });
-} */
-
-
-
 // --- Active Shots & Explosions ---
 const activeShots = [];
 const explosions = []; // Now stores Explosion instances
@@ -320,58 +272,10 @@ function updateCooldownBar(progress) {
     `${Math.min(1, Math.max(0, progress)) * 100}%`;
 }
 
-function updateEnemies(deltaTime) {
-  if (gameOver) return;
-  for (let i = enemyBodies.length - 1; i >= 0; i--) {
-    const { mesh: enemy, body: enemyBody } = enemyBodies[i];
-    const directionToPlayer = new THREE.Vector3().subVectors(player.position, enemy.position);
-    if (directionToPlayer.lengthSq() < 0.01) {
-        enemyBody.velocity.set(0, enemyBody.velocity.y, 0); // Stop if very close
-        continue;
-    }
-
-    const moveVector = new THREE.Vector3(directionToPlayer.x, 0, directionToPlayer.z);
-    moveVector.normalize();
-
-    // Set the velocity directly for kinematic enemies
-    enemyBody.velocity.set(
-        moveVector.x * ENEMY_SPEED_PER_SEC,
-        enemyBody.velocity.y, // Preserve vertical velocity
-        moveVector.z * ENEMY_SPEED_PER_SEC
-    );
-
-    // Make enemy mesh look at player (visual only)
-    enemy.lookAt(player.position.x, enemy.position.y, player.position.z);
-
-    // Check for collision with player (using Three.js distance for simplicity,
-    // but Cannon.js collision events would be more robust for kinematic bodies)
-    if (enemy.position.distanceTo(player.position) < (PLAYER_SIZE / 2 + ENEMY_SIZE / 2)) {
-      gameOver = true;
-      document.getElementById('game-over-message').style.display = 'block';
-      player.exitCombatMode(scene, playerBody); // Pass playerBody
-      player.removeCursorIndicator(scene);
-      break;
-    }
-  }
-}
-
 function updateActiveShots() {
   const currentTime = clock.elapsedTime;
   for (let i = activeShots.length - 1; i >= 0; i--) {
     const shot = activeShots[i];
-    for (let j = enemyBodies.length - 1; j >= 0; j--) {
-      const { mesh: enemy, body: enemyBody } = enemyBodies[j];
-      if (shot.position.distanceTo(enemy.position) < SHOT_RADIUS) {
-        scene.remove(enemy);
-        if (enemy.geometry) enemy.geometry.dispose();
-        if (enemy.material) enemy.material.dispose();
-        world.removeBody(enemyBody); // Remove enemy body from physics world
-        enemyBodies.splice(j, 1);
-        enemies.splice(enemies.indexOf(enemy), 1); // Also remove from the Three.js enemies array
-        score++;
-        document.getElementById('score').innerText = `Score: ${score}`;
-      }
-    }
     if (currentTime >= shot.endTime) {
       scene.remove(shot.mesh);
       if (shot.mesh.geometry) shot.mesh.geometry.dispose();
@@ -391,7 +295,7 @@ function animate() {
 
   if (!gameOver) {
     // Update player movement (now applies force to physics body)
-    player.update(deltaTime, keys, obstacles, cursorWorld, scene, playerBody); // Pass playerBody to player update
+    player.update(deltaTime, keys, cursorWorld, scene, playerBody); // Pass playerBody to player update
 
     if (shotCooldownTimer > 0) {
       shotCooldownTimer -= deltaTime;
@@ -402,28 +306,12 @@ function animate() {
         updateCooldownBar(1);
       }
     }
-
-    enemySpawnTimer -= deltaTime * 1000;
-    if (enemySpawnTimer <= 0) {
-      spawnEnemy(scene, player.position, GRID_SIZE);
-      enemySpawnTimer = ENEMY_SPAWN_INTERVAL;
-    }
   }
-
-  updateEnemies(deltaTime); // This now applies forces to enemy physics bodies
   updateActiveShots();
 
-  // Synchronize Three.js meshes with Cannon.js bodies
   player.position.copy(playerBody.position);
-  // Removed player.quaternion.copy(playerBody.quaternion);
-  // Player's visual rotation is now handled directly by player.js based on input.
 
   for (const { mesh, body } of obstacleBodies) {
-    mesh.position.copy(body.position);
-    mesh.quaternion.copy(body.quaternion);
-  }
-
-  for (const { mesh, body } of enemyBodies) {
     mesh.position.copy(body.position);
     mesh.quaternion.copy(body.quaternion);
   }
