@@ -132,21 +132,36 @@ class Player extends THREE.Mesh {
      */
     exitCombatMode(scene, playerBody) {
         this.isCombatMode = false;
-        if (this.siegeAction) this.siegeAction.stop();
-        if (this.siegeREAction) {
-            this.siegeREAction.reset().play();
-            this.siegeREAction.onFinished = () => {
-                // Allow movement only after the animation finishes
-                this.canMove = true; // Enable movement
-                if (playerBody) {
-                    playerBody.wakeUp();
-                    playerBody.velocity.set(0, playerBody.velocity.y, 0);
+        if (this.siegeAction) {
+            this.siegeAction.stop();
+        }
+
+        if (this.siegeREAction && this.mixer) { // Stellen Sie sicher, dass der Mixer existiert
+            this.canMove = false; // Bewegung sofort deaktivieren
+
+            const onAnimationFinished = (event) => {
+                // Prüfen, ob es die richtige Animation ist, die beendet wurde
+                if (event.action === this.siegeREAction) {
+                    this.canMove = true; // Bewegung wieder erlauben
+                    if (playerBody) {
+                        playerBody.wakeUp();
+                        // Ggf. Geschwindigkeit hier auch explizit auf 0 setzen, falls nötig
+                        // playerBody.velocity.set(0, playerBody.velocity.y, 0);
+                    }
+                    // Wichtig: Den Listener entfernen, damit er nicht mehrfach ausgelöst wird
+                    this.mixer.removeEventListener('finished', onAnimationFinished);
                 }
             };
-            this.canMove = false; // Disable movement during animation
+
+            this.mixer.addEventListener('finished', onAnimationFinished);
+            this.siegeREAction.reset().play();
+
         } else {
-            // If no animation, enable movement immediately
+            // Wenn keine Animation zum Beenden vorhanden ist oder kein Mixer, Bewegung sofort erlauben
             this.canMove = true;
+            if (playerBody) {
+                playerBody.wakeUp();
+            }
         }
 
         if (this.activationRangeRing) {
@@ -156,10 +171,18 @@ class Player extends THREE.Mesh {
         }
         this.removeCursorIndicator(scene);
 
-        // Wake up player body immediately
-        if (playerBody) {
-            playerBody.wakeUp();
+        // PlayerBody aufwecken, falls nicht durch Animation geschehen
+        // Die move() Funktion wird die Bewegung ohnehin stoppen, wenn canMove false ist.
+        if (playerBody && !this.siegeREAction) { // Nur wenn keine Animation gestartet wurde
+             playerBody.wakeUp();
+        } else if (playerBody && this.siegeREAction && !this.canMove) {
+            // Wenn eine Animation läuft, ist der Körper möglicherweise noch im Schlaf,
+            // aber die Bewegung wird durch canMove = false verhindert.
+            // playerBody.wakeUp(); // Kann hier auch schon passieren.
         }
+         if (playerBody) { // Generelles Aufwecken, falls es noch schläft.
+            playerBody.wakeUp();
+         }
     }
 
     createCursorIndicator(scene, cursorWorld) {
