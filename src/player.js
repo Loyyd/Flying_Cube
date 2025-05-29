@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import * as CANNON from 'cannon-es'; // Import cannon-es
+import * as CANNON from 'cannon-es';
 
 // SETTINGS
 const PLAYER_SPEED = 5.0;
@@ -10,6 +10,9 @@ const RING_OPACITY = 0.4;
 const CURSOR_INDICATOR_RADIUS = 0.5;
 const CURSOR_INDICATOR_SEGMENTS = 16;
 const CURSOR_INDICATOR_OPACITY = 0.8;
+
+// Neue Einstellung für die Rotationsgeschwindigkeit
+const ROTATION_SPEED = 5.0; // Adjust this value to control rotation speed
 
 class Player extends THREE.Mesh {
     constructor(geometry, material, initialPosition = new THREE.Vector3(0, 0, 0)) {
@@ -24,13 +27,11 @@ class Player extends THREE.Mesh {
         this.mixer = null;
         this.siegeAction = null;
         this.siegeREAction = null;
-        this.canMove = true; // Add canMove flag
-
-        this.position.copy(initialPosition);
-        this.castShadow = true;
-        this.receiveShadow = true;
+        this.canMove = true;
+        this.targetRotationY = this.rotation.y; // Store the target rotation
         this.rotorBone = null;
     }
+
 
     loadModel(scene) {
         const loader = new GLTFLoader();
@@ -67,36 +68,51 @@ class Player extends THREE.Mesh {
      * @param {CANNON.Body} playerBody - The Cannon.js body associated with the player.
      */
     move(deltaTime, keys, playerBody) {
-        if (this.isCombatMode || !this.canMove) {
-            // Stop movement when in combat mode or animation is playing
-            playerBody.velocity.set(0, playerBody.velocity.y, 0);
-            return;
-        }
-
-        let dx = 0;
-        let dz = 0;
-        if (keys['w']) dz -= 1;
-        if (keys['s']) dz += 1;
-        if (keys['a']) dx -= 1;
-        if (keys['d']) dx += 1;
-
-        const moveVector = new THREE.Vector3(dx, 0, dz);
-
-        if (moveVector.lengthSq() > 0) {
-            moveVector.normalize();
-            // Set the velocity directly for kinematic bodies
-            playerBody.velocity.set(
-                moveVector.x * this.speed,
-                playerBody.velocity.y, // Preserve vertical velocity (e.g., from gravity)
-                moveVector.z * this.speed
-            );
-            // Update Three.js mesh rotation based on movement direction
-            this.rotation.y = Math.atan2(moveVector.x, moveVector.z);
-        } else {
-            // Stop movement if no keys are pressed
-            playerBody.velocity.set(0, playerBody.velocity.y, 0);
-        }
+    if (this.isCombatMode || !this.canMove) {
+        playerBody.velocity.set(0, playerBody.velocity.y, 0);
+        return;
     }
+
+    let dx = 0;
+    let dz = 0;
+    if (keys['w']) dz -= 1;
+    if (keys['s']) dz += 1;
+    if (keys['a']) dx -= 1;
+    if (keys['d']) dx += 1;
+
+    const moveVector = new THREE.Vector3(dx, 0, dz);
+
+    if (moveVector.lengthSq() > 0) {
+        moveVector.normalize();
+        playerBody.velocity.set(
+            moveVector.x * this.speed,
+            playerBody.velocity.y,
+            moveVector.z * this.speed
+        );
+
+        // Calculate the target rotation
+        let targetRotationY = Math.atan2(moveVector.x, moveVector.z);
+
+        // Normalize angles to ensure shortest rotation
+        let currentRotationY = this.rotation.y % (Math.PI * 2);
+        let diff = targetRotationY - currentRotationY;
+        if (diff > Math.PI) {
+            diff -= Math.PI * 2;
+        } else if (diff < -Math.PI) {
+            diff += Math.PI * 2;
+        }
+        targetRotationY = currentRotationY + diff;
+
+        this.targetRotationY = targetRotationY;
+
+
+    } else {
+        playerBody.velocity.set(0, playerBody.velocity.y, 0);
+    }
+
+    // Smoothly rotate towards the target rotation
+    this.rotation.y = THREE.MathUtils.lerp(this.rotation.y, this.targetRotationY, deltaTime * ROTATION_SPEED);
+}
 
     /**
      * Enters combat mode, updating player visuals and physics body state.
@@ -140,18 +156,15 @@ class Player extends THREE.Mesh {
             this.canMove = false; // Bewegung sofort deaktivieren
 
             const onAnimationFinished = (event) => {
-                // Prüfen, ob es die richtige Animation ist, die beendet wurde
                 if (event.action === this.siegeREAction) {
-                    this.canMove = true; // Bewegung wieder erlauben
+                    this.canMove = true; 
                     if (playerBody) {
                         playerBody.wakeUp();
-                        // Ggf. Geschwindigkeit hier auch explizit auf 0 setzen, falls nötig
-                        // playerBody.velocity.set(0, playerBody.velocity.y, 0);
                     }
-                    // Wichtig: Den Listener entfernen, damit er nicht mehrfach ausgelöst wird
                     this.mixer.removeEventListener('finished', onAnimationFinished);
                 }
             };
+            
 
             this.mixer.addEventListener('finished', onAnimationFinished);
             this.siegeREAction.reset().play();
@@ -238,13 +251,13 @@ class Player extends THREE.Mesh {
      */
     update(deltaTime, keys, cursorWorld, scene, playerBody) {
         if (this.mixer) this.mixer.update(deltaTime);
-        this.move(deltaTime, keys, playerBody); // Pass playerBody to move function
+        this.move(deltaTime, keys, playerBody);
         this.updateActivationRangeRing();
 
         if (this.isCombatMode) {
             this.createCursorIndicator(scene, cursorWorld);
             this.updateCursorIndicator(cursorWorld);
-            this.updateRotorRotation(cursorWorld); // Update rotor rotation in combat mode
+            this.updateRotorRotation(cursorWorld);
         } else {
             this.removeCursorIndicator(scene);
         }
