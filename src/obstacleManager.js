@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { Obstacle } from './obstacle.js';
 
-export const OBSTACLE_WALL_COLOR = 0x666666;
-export const OBSTACLE_RANDOM_COLOR = 0x5070C0;
+export const OBSTACLE1_COLOR = 0xff0000; // Red
+export const OBSTACLE2_COLOR = 0x0000ff; // Blue
 export const NUM_RANDOM_OBSTACLES = 50;
 
 export class ObstacleManager {
@@ -16,7 +16,7 @@ export class ObstacleManager {
 
   createWallObstacles() {
     const wallMaterial = new THREE.MeshStandardMaterial({
-      color: OBSTACLE_WALL_COLOR,
+      //color: OBSTACLE_WALL_COLOR,
       roughness: 0.8,
       metalness: 0.1
     });
@@ -41,19 +41,30 @@ export class ObstacleManager {
   }
 
   createRandomObstacles() {
-    const randomObstacleMaterial = new THREE.MeshStandardMaterial({
-      color: OBSTACLE_RANDOM_COLOR,
+    const obstacle1Material = new THREE.MeshStandardMaterial({
+      color: OBSTACLE1_COLOR,
       roughness: 0.7,
       metalness: 0.1
     });
-    const randomObstacleGeo = new THREE.BoxGeometry(1, 1.5, 1);
+    const obstacle2Material = new THREE.MeshStandardMaterial({
+      color: OBSTACLE2_COLOR,
+      roughness: 0.7,
+      metalness: 0.1
+    });
+
+    const obstacleGeo = new THREE.BoxGeometry(1, 1.5, 1);
 
     for (let i = 0; i < NUM_RANDOM_OBSTACLES; i++) {
       const x = Math.floor(Math.random() * (this.gridSize - 4) - (this.gridSize / 2 - 2));
       const z = Math.floor(Math.random() * (this.gridSize - 4) - (this.gridSize / 2 - 2));
       if (Math.abs(x) < 3 && Math.abs(z) < 3) continue;
+
+      // Determine obstacle type based on spawn probability
+      const isObstacle1 = Math.random() < 0.2; // 20% chance for Obstacle1
+      const material = isObstacle1 ? obstacle1Material : obstacle2Material;
+
       this.obstacles.push(
-        new Obstacle(x, 1.5 / 2, z, randomObstacleGeo, randomObstacleMaterial, false, this.scene, this.world, this.defaultMaterial)
+        new Obstacle(x, 1.5 / 2, z, obstacleGeo, material, false, this.scene, this.world, this.defaultMaterial)
       );
     }
   }
