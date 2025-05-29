@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import Player from './player.js';
 import { Explosion } from './explosion.js';
 import * as CANNON from 'cannon-es'; // Import cannon-es
+import CameraManager from './camera.js'; // Import your CameraManager
 
 // --- Game Constants ---
 const GRID_SIZE = 50;
@@ -38,12 +39,9 @@ scene.fog = new THREE.Fog(
   CAMERA_Y_OFFSET + GRID_SIZE * FOG_FAR_FACTOR
 );
 
-const camera = new THREE.PerspectiveCamera(
-  50,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000
-);
+
+
+
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
@@ -181,6 +179,10 @@ const playerMaterial = new THREE.MeshStandardMaterial({ color: PLAYER_NORMAL_COL
 const player = new Player(playerGeometry, playerMaterial);
 player.loadModel(scene);
 
+// --- Camera Setup ---
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const cameraManager = new CameraManager(camera, player);
+
 // Create Cannon.js body for the player - now KINEMATIC
 const playerShape = new CANNON.Box(new CANNON.Vec3(PLAYER_SIZE / 2, PLAYER_SIZE / 2, PLAYER_SIZE / 2));
 const playerBody = new CANNON.Body({ type: CANNON.Body.KINEMATIC, material: defaultMaterial }); // Changed to KINEMATIC
@@ -287,6 +289,7 @@ function updateActiveShots() {
 
 // --- Animation Loop ---
 function animate() {
+  cameraManager.update();
   requestAnimationFrame(animate);
   const deltaTime = clock.getDelta();
 
@@ -325,20 +328,14 @@ function animate() {
     }
   }
 
-  camera.position.set(
-    player.position.x,
-    player.position.y + CAMERA_Y_OFFSET,
-    player.position.z + CAMERA_Z_OFFSET
-  );
-  camera.lookAt(player.position);
-
   renderer.render(scene, camera);
+  
 }
+
+
 
 // --- Window Resize ---
 window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
