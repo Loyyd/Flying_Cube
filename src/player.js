@@ -15,8 +15,8 @@ const CURSOR_INDICATOR_OPACITY = 0.8;
 const ROTATION_SPEED = 5.0; // Adjust this value to control rotation speed
 
 class Player extends THREE.Mesh {
-    constructor(geometry, material, initialPosition = new THREE.Vector3(0, 0, 0)) {
-        super(geometry, material);
+    constructor(initialPosition = new THREE.Vector3(0, 0, 0)) {
+        super();
         this.speed = PLAYER_SPEED;
         this.isCombatMode = false;
         this.canShoot = true;
@@ -84,6 +84,12 @@ class Player extends THREE.Mesh {
 
     if (moveVector.lengthSq() > 0) {
         moveVector.normalize();
+
+        // Wake up the player body if it is asleep
+        if (playerBody.sleepState === CANNON.Body.SLEEPING) {
+            playerBody.wakeUp();
+        }
+        
         playerBody.velocity.set(
             moveVector.x * this.speed,
             playerBody.velocity.y,

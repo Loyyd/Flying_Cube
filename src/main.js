@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import Player from './player.js';
 import { Explosion } from './explosion.js';
 import * as CANNON from 'cannon-es'; // Import cannon-es
@@ -8,9 +7,6 @@ import CameraManager from './camera.js'; // Import your CameraManager
 // --- Game Constants ---
 const GRID_SIZE = 50;
 const PLAYER_SIZE = 1;
-const PLAYER_SPEED = 5.0;
-const PLAYER_NORMAL_COLOR = 0x4488ff;
-const PLAYER_ACTIVE_COLOR = 0xff4444;
 
 const OBSTACLE_WALL_COLOR = 0x666666;
 const OBSTACLE_RANDOM_COLOR = 0x5070C0;
@@ -164,9 +160,7 @@ for (let i = 0; i < NUM_RANDOM_OBSTACLES; i++) {
 }
 
 // --- Player ---
-const playerGeometry = new THREE.BoxGeometry(PLAYER_SIZE, PLAYER_SIZE, PLAYER_SIZE);
-const playerMaterial = new THREE.MeshStandardMaterial({ color: PLAYER_NORMAL_COLOR });
-const player = new Player(playerGeometry, playerMaterial);
+const player = new Player();
 player.loadModel(scene);
 
 // --- Camera Setup ---
@@ -174,7 +168,7 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 const cameraManager = new CameraManager(camera, player);
 
 // Create Cannon.js body for the player - now KINEMATIC
-const playerShape = new CANNON.Box(new CANNON.Vec3(PLAYER_SIZE / 2, PLAYER_SIZE / 2, PLAYER_SIZE / 2));
+const playerShape = new CANNON.Box(new CANNON.Vec3(PLAYER_SIZE * 1.3, PLAYER_SIZE, PLAYER_SIZE*1.3));
 const playerBody = new CANNON.Body({ type: CANNON.Body.KINEMATIC, material: defaultMaterial }); // Changed to KINEMATIC
 playerBody.addShape(playerShape);
 playerBody.position.set(player.position.x, player.position.y, player.position.z);
@@ -191,7 +185,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === ' ' && !gameOver) {
     activeMode = !activeMode;
     if (activeMode) {
-      player.enterCombatMode(scene, PLAYER_ACTIVE_COLOR, playerBody); // Pass playerBody
+      player.enterCombatMode(scene, playerBody); // Pass playerBody
     } else {
       player.exitCombatMode(scene, playerBody); // Pass playerBody
     }
