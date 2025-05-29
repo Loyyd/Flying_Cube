@@ -1,27 +1,20 @@
 import * as THREE from 'three';
+import * as CANNON from 'cannon-es'; 
 import Player from './player.js';
 import { SHOT_RANGE, SHOT_RADIUS, SHOT_EFFECT_DURATION_S, SHOT_COOLDOWN_S, SHOT_ACTIVE_COLOR, EXPLOSION_DELAY_S } from './player.js';
 import { Explosion } from './explosion.js';
-import * as CANNON from 'cannon-es'; // Import cannon-es
-import CameraManager from './camera.js'; // Import your CameraManager
-
+import CameraManager from './camera.js'; 
+import { ObstacleManager } from './obstacleManager.js';
 
 // --- Game Constants ---
 const GRID_SIZE = 50;
 const PLAYER_SIZE = 1;
-
-const OBSTACLE_WALL_COLOR = 0x666666;
-const OBSTACLE_RANDOM_COLOR = 0x5070C0;
-const NUM_RANDOM_OBSTACLES = 50;
-
 const SCENE_BACKGROUND_COLOR = 0x282c34;
 
 // --- Scene Setup ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(SCENE_BACKGROUND_COLOR);
-scene.fog = new THREE.FogExp2(
-  SCENE_BACKGROUND_COLOR, 0.01
-);
+scene.fog = new THREE.FogExp2(SCENE_BACKGROUND_COLOR, 0.01);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -33,24 +26,23 @@ const clock = new THREE.Clock();
 
 // --- Physics World Setup ---
 const world = new CANNON.World();
-world.gravity.set(0, -9.82, 0); // Set gravity
-world.broadphase = new CANNON.SAPBroadphase(world); // Improve collision detection performance
-world.allowSleep = true; // Allow bodies to "sleep" when not moving to save CPU
+world.gravity.set(0, -9.82, 0);
+world.broadphase = new CANNON.SAPBroadphase(world);
+world.allowSleep = true;
 
-// Define a default material for better friction
 const defaultMaterial = new CANNON.Material('default');
 const defaultContactMaterial = new CANNON.ContactMaterial(
   defaultMaterial,
   defaultMaterial,
   {
-    friction: 0.5, // Increased friction
-    restitution: 0.2, // Reduced bounciness
+    friction: 0.5,
+    restitution: 0.2,
     contactEquationStiffness: 1e8,
     contactEquationRelaxation: 3
   }
 );
 world.addContactMaterial(defaultContactMaterial);
-world.defaultContactMaterial = defaultContactMaterial; // Set as default
+world.defaultContactMaterial = defaultContactMaterial;
 
 // --- Lighting ---
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -78,8 +70,6 @@ const groundPlaneRay = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 // --- Game State ---
 let activeMode = false;
 let canShoot = true;
-let score = 0;
-let gameOver = false;
 let shotCooldownTimer = 0;
 
 // --- Ground Plane ---
@@ -95,64 +85,15 @@ mainGround.receiveShadow = true;
 mainGround.position.y = -0.05;
 scene.add(mainGround);
 
-// Create Cannon.js ground plane
 const groundShape = new CANNON.Plane();
-const groundBody = new CANNON.Body({ mass: 0, material: defaultMaterial }); // mass 0 makes it static
+const groundBody = new CANNON.Body({ mass: 0, material: defaultMaterial });
 groundBody.addShape(groundShape);
-groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0); // Rotate to match Three.js plane
+groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
 world.addBody(groundBody);
 
 // --- Obstacles ---
-const obstacles = [];
-const obstacleBodies = []; // Array to hold Cannon.js bodies for obstacles
-
-const wallMaterial = new THREE.MeshStandardMaterial({
-  color: OBSTACLE_WALL_COLOR,
-  roughness: 0.8,
-  metalness: 0.1
-});
-const randomObstacleMaterial = new THREE.MeshStandardMaterial({
-  color: OBSTACLE_RANDOM_COLOR,
-  roughness: 0.7,
-  metalness: 0.1
-});
-const wallGeo = new THREE.BoxGeometry(1, 2, 1);
-const randomObstacleGeo = new THREE.BoxGeometry(1, 1.5, 1);
-
-function createObstacle(x, y, z, geometry, material, isStatic = true) {
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.set(x, y, z);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  scene.add(mesh);
-  obstacles.push(mesh);
-
-  // Create Cannon.js body for the obstacle
-  const halfExtents = new CANNON.Vec3(geometry.parameters.width / 2, geometry.parameters.height / 2, geometry.parameters.depth / 2);
-  const boxShape = new CANNON.Box(halfExtents);
-  const body = new CANNON.Body({ mass: isStatic ? 0 : 1, material: defaultMaterial }); // Static or dynamic
-  body.addShape(boxShape);
-  body.position.set(x, y, z);
-  world.addBody(body);
-  obstacleBodies.push({ mesh, body }); // Store both mesh and body for synchronization
-}
-
-for (let i = -GRID_SIZE / 2; i <= GRID_SIZE / 2; i++) {
-  createObstacle(i, 1, -GRID_SIZE / 2, wallGeo, wallMaterial);
-  createObstacle(i, 1, GRID_SIZE / 2, wallGeo, wallMaterial);
-  if (i !== -GRID_SIZE / 2 && i !== GRID_SIZE / 2) {
-    createObstacle(-GRID_SIZE / 2, 1, i, wallGeo, wallMaterial);
-    createObstacle(GRID_SIZE / 2, 1, i, wallGeo, wallMaterial);
-  }
-}
-
-for (let i = 0; i < NUM_RANDOM_OBSTACLES; i++) {
-  const x = Math.floor(Math.random() * (GRID_SIZE - 4) - (GRID_SIZE / 2 - 2));
-  const z = Math.floor(Math.random() * (GRID_SIZE - 4) - (GRID_SIZE / 2 - 2));
-  if (Math.abs(x) < 3 && Math.abs(z) < 3) continue;
-  // Make random obstacles dynamic for physics interaction
-  createObstacle(x, 1.5 / 2, z, randomObstacleGeo, randomObstacleMaterial, false);
-}
+const obstacleManager = new ObstacleManager(scene, world, defaultMaterial, GRID_SIZE);
+obstacleManager.initializeObstacles();
 
 // --- Player ---
 const player = new Player();
@@ -162,27 +103,26 @@ player.loadModel(scene);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const cameraManager = new CameraManager(camera, player);
 
-// Create Cannon.js body for the player - now KINEMATIC
-const playerShape = new CANNON.Box(new CANNON.Vec3(PLAYER_SIZE * 1.3, PLAYER_SIZE, PLAYER_SIZE*1.3));
-const playerBody = new CANNON.Body({ type: CANNON.Body.KINEMATIC, material: defaultMaterial }); // Changed to KINEMATIC
+const playerShape = new CANNON.Box(new CANNON.Vec3(PLAYER_SIZE * 1.3, PLAYER_SIZE, PLAYER_SIZE * 1.3));
+const playerBody = new CANNON.Body({ type: CANNON.Body.KINEMATIC, material: defaultMaterial });
 playerBody.addShape(playerShape);
 playerBody.position.set(player.position.x, player.position.y, player.position.z);
 world.addBody(playerBody);
 
 // --- Active Shots & Explosions ---
 const activeShots = [];
-const explosions = []; 
+const explosions = [];
 
 // --- Input Handling ---
 const keys = {};
 document.addEventListener('keydown', (e) => {
   keys[e.key.toLowerCase()] = true;
-  if (e.key === ' ' && !gameOver) {
+  if (e.key === ' ') {
     activeMode = !activeMode;
     if (activeMode) {
-      player.enterCombatMode(scene, playerBody); // Pass playerBody
+      player.enterCombatMode(scene, playerBody);
     } else {
-      player.exitCombatMode(scene, playerBody); // Pass playerBody
+      player.exitCombatMode(scene, playerBody);
     }
   }
 });
@@ -194,7 +134,7 @@ renderer.domElement.addEventListener('mousemove', (event) => {
   raycaster.setFromCamera(mouse, camera);
   raycaster.ray.intersectPlane(groundPlaneRay, cursorWorld);
 
-  if (activeMode && !gameOver) {
+  if (activeMode) {
     player.createCursorIndicator(scene, cursorWorld);
     player.updateCursorIndicator(cursorWorld);
   } else {
@@ -203,7 +143,7 @@ renderer.domElement.addEventListener('mousemove', (event) => {
 });
 
 renderer.domElement.addEventListener('click', (event) => {
-  if (gameOver || !activeMode || !canShoot) return;
+  if (!activeMode || !canShoot) return;
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(mouse, camera);
@@ -219,7 +159,6 @@ renderer.domElement.addEventListener('click', (event) => {
     player.lastShotDirection.subVectors(intersectPoint, player.position).normalize();
     player.lastShotDirection.y = 0;
 
-    // The red circle and explosion are now created simultaneously after the delay
     setTimeout(() => {
       const circleGeometry = new THREE.CircleGeometry(SHOT_RADIUS, 32);
       const circleMaterial = new THREE.MeshBasicMaterial({
@@ -234,17 +173,17 @@ renderer.domElement.addEventListener('click', (event) => {
 
       activeShots.push({
         mesh: shotCircle,
-        endTime: clock.elapsedTime + SHOT_EFFECT_DURATION_S, // No need for EXPLOSION_DELAY_S here anymore
+        endTime: clock.elapsedTime + SHOT_EFFECT_DURATION_S,
         position: shotCircle.position.clone()
       });
       createExplosion(intersectPoint);
-    }, EXPLOSION_DELAY_S * 1000); // This delay now applies to both the circle and explosion
+    }, EXPLOSION_DELAY_S * 1000);
   }
 });
 
-// --- Explosion Creation (modular) ---
+// --- Explosion Creation ---
 function createExplosion(position) {
-  explosions.push(new Explosion(position, scene, world)); // Pass the world instance
+  explosions.push(new Explosion(position, scene, world));
 }
 
 // --- Game Logic Functions ---
@@ -272,33 +211,24 @@ function animate() {
   requestAnimationFrame(animate);
   const deltaTime = clock.getDelta();
 
-  // Step the physics world
-  world.step(1 / 60, deltaTime, 3); // Fixed time step for physics
+  world.step(1 / 60, deltaTime, 3);
 
-  if (!gameOver) {
-    // Update player movement (now applies force to physics body)
-    player.update(deltaTime, keys, cursorWorld, scene, playerBody); // Pass playerBody to player update
+  player.update(deltaTime, keys, cursorWorld, scene, playerBody);
 
-    if (shotCooldownTimer > 0) {
-      shotCooldownTimer -= deltaTime;
-      updateCooldownBar(1 - shotCooldownTimer / SHOT_COOLDOWN_S);
-      if (shotCooldownTimer <= 0) {
-        canShoot = true;
-        shotCooldownTimer = 0;
-        updateCooldownBar(1);
-      }
+  if (shotCooldownTimer > 0) {
+    shotCooldownTimer -= deltaTime;
+    updateCooldownBar(1 - shotCooldownTimer / SHOT_COOLDOWN_S);
+    if (shotCooldownTimer <= 0) {
+      canShoot = true;
+      shotCooldownTimer = 0;
+      updateCooldownBar(1);
     }
   }
+
   updateActiveShots();
-
   player.position.copy(playerBody.position);
+  obstacleManager.synchronizeObstacles();
 
-  for (const { mesh, body } of obstacleBodies) {
-    mesh.position.copy(body.position);
-    mesh.quaternion.copy(body.quaternion);
-  }
-
-  // --- Modular Explosion Update ---
   for (let i = explosions.length - 1; i >= 0; i--) {
     explosions[i].update(deltaTime);
     if (explosions[i].isFinished()) {
@@ -308,7 +238,6 @@ function animate() {
   }
 
   renderer.render(scene, camera);
-  
 }
 
 // --- Window Resize ---
