@@ -23,24 +23,14 @@ const SHOT_EFFECT_DURATION_S = 2.0;
 const SHOT_COOLDOWN_S = 0.5;
 const EXPLOSION_DELAY_S = 0.3;
 
-const CAMERA_Y_OFFSET = 18;
-const CAMERA_Z_OFFSET = 12;
-
 const SCENE_BACKGROUND_COLOR = 0x282c34;
-const FOG_NEAR_FACTOR = 0.8;
-const FOG_FAR_FACTOR = 2.5;
 
 // --- Scene Setup ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(SCENE_BACKGROUND_COLOR);
-scene.fog = new THREE.Fog(
-  SCENE_BACKGROUND_COLOR,
-  CAMERA_Y_OFFSET * FOG_NEAR_FACTOR,
-  CAMERA_Y_OFFSET + GRID_SIZE * FOG_FAR_FACTOR
+scene.fog = new THREE.FogExp2(
+  SCENE_BACKGROUND_COLOR, 0.05
 );
-
-
-
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
