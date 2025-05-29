@@ -2,10 +2,19 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as CANNON from 'cannon-es'; // Import cannon-es
 
+// SETTINGS
+const PLAYER_SPEED = 5.0;
+const SHOT_RANGE = 10;
+const RING_THICKNESS = 0.15;
+const RING_OPACITY = 0.4;
+const CURSOR_INDICATOR_RADIUS = 0.5;
+const CURSOR_INDICATOR_SEGMENTS = 16;
+const CURSOR_INDICATOR_OPACITY = 0.8;
+
 class Player extends THREE.Mesh {
     constructor(geometry, material, initialPosition = new THREE.Vector3(0, 0, 0)) {
         super(geometry, material);
-        this.speed = 5.0;
+        this.speed = PLAYER_SPEED;
         this.isCombatMode = false;
         this.canShoot = true;
         this.shotCooldownTimer = 0;
@@ -15,6 +24,7 @@ class Player extends THREE.Mesh {
         this.mixer = null;
         this.siegeAction = null;
         this.siegeREAction = null;
+        this.canMove = true; // Add canMove flag
 
         this.position.copy(initialPosition);
         this.castShadow = true;
@@ -57,8 +67,8 @@ class Player extends THREE.Mesh {
      * @param {CANNON.Body} playerBody - The Cannon.js body associated with the player.
      */
     move(deltaTime, keys, playerBody) {
-        if (this.isCombatMode) {
-            // Stop movement when in combat mode
+        if (this.isCombatMode || !this.canMove) {
+            // Stop movement when in combat mode or animation is playing
             playerBody.velocity.set(0, playerBody.velocity.y, 0);
             return;
         }
@@ -96,13 +106,12 @@ class Player extends THREE.Mesh {
      */
     enterCombatMode(scene, playerActiveColor, playerBody) {
         this.isCombatMode = true;
-        this.material.color.setHex(playerActiveColor);
         if (this.siegeREAction) this.siegeREAction.stop();
         if (this.siegeAction) this.siegeAction.reset().play();
 
         if (!this.activationRangeRing) {
-            const ringGeo = new THREE.RingGeometry(10 - 0.15, 10, 64); // SHOT_RANGE
-            const ringMat = new THREE.MeshBasicMaterial({ color: playerActiveColor, side: THREE.DoubleSide, transparent: true, opacity: 0.4 });
+            const ringGeo = new THREE.RingGeometry(SHOT_RANGE - RING_THICKNESS, SHOT_RANGE, 64);
+            const ringMat = new THREE.MeshBasicMaterial({ color: playerActiveColor, side: THREE.DoubleSide, transparent: true, opacity: RING_OPACITY });
             this.activationRangeRing = new THREE.Mesh(ringGeo, ringMat);
             this.activationRangeRing.rotation.x = -Math.PI / 2;
             scene.add(this.activationRangeRing);
@@ -123,9 +132,22 @@ class Player extends THREE.Mesh {
      */
     exitCombatMode(scene, playerBody) {
         this.isCombatMode = false;
-        this.material.color.setHex(0x4488ff); // PLAYER_NORMAL_COLOR
         if (this.siegeAction) this.siegeAction.stop();
-        if (this.siegeREAction) this.siegeREAction.reset().play();
+        if (this.siegeREAction) {
+            this.siegeREAction.reset().play();
+            this.siegeREAction.onFinished = () => {
+                // Allow movement only after the animation finishes
+                this.canMove = true; // Enable movement
+                if (playerBody) {
+                    playerBody.wakeUp();
+                    playerBody.velocity.set(0, playerBody.velocity.y, 0);
+                }
+            };
+            this.canMove = false; // Disable movement during animation
+        } else {
+            // If no animation, enable movement immediately
+            this.canMove = true;
+        }
 
         if (this.activationRangeRing) {
             scene.remove(this.activationRangeRing);
@@ -134,18 +156,16 @@ class Player extends THREE.Mesh {
         }
         this.removeCursorIndicator(scene);
 
-        // Wake up player body when exiting combat mode
+        // Wake up player body immediately
         if (playerBody) {
             playerBody.wakeUp();
-            // Optionally, reset velocity here if needed, though `move` will set it on next input
-            // playerBody.velocity.set(0, playerBody.velocity.y, 0);
         }
     }
 
     createCursorIndicator(scene, cursorWorld) {
         if (!this.cursorIndicator) {
-            const indicatorGeo = new THREE.CircleGeometry(0.5, 16);
-            const indicatorMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
+            const indicatorGeo = new THREE.CircleGeometry(CURSOR_INDICATOR_RADIUS, CURSOR_INDICATOR_SEGMENTS);
+            const indicatorMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: CURSOR_INDICATOR_OPACITY });
             this.cursorIndicator = new THREE.Mesh(indicatorGeo, indicatorMat);
             this.cursorIndicator.rotation.x = -Math.PI / 2;
             scene.add(this.cursorIndicator);
