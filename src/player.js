@@ -4,6 +4,8 @@ import * as CANNON from 'cannon-es';
 
 // SETTINGS
 const PLAYER_SPEED = 5.0;
+const ROTATION_SPEED = 5.0; // Adjust this value to control rotation speed
+
 const SHOT_RANGE = 10;
 const SHOT_RADIUS = 2;
 const SHOT_EFFECT_DURATION_S = 2.0;
@@ -19,9 +21,6 @@ const CURSOR_INDICATOR_OPACITY = 0.8;
 
 
 
-// Neue Einstellung für die Rotationsgeschwindigkeit
-const ROTATION_SPEED = 5.0; // Adjust this value to control rotation speed
-
 class Player extends THREE.Mesh {
     constructor(initialPosition = new THREE.Vector3(0, 0, 0)) {
         super();
@@ -35,6 +34,7 @@ class Player extends THREE.Mesh {
         this.mixer = null;
         this.siegeAction = null;
         this.siegeREAction = null;
+        this.siegeDriveAction = null; // Keep "SiegeDrive" reference
         this.canMove = true;
         this.targetRotationY = this.rotation.y; // Store the target rotation
         this.rotorBone = null;
@@ -54,6 +54,18 @@ class Player extends THREE.Mesh {
 
             this.siegeAction = this.mixer.clipAction(animations.find(clip => clip.name === 'SiegeMode'));
             this.siegeREAction = this.mixer.clipAction(animations.find(clip => clip.name === 'SiegeModeRE'));
+            this.siegeDriveAction = this.mixer.clipAction(animations.find(clip => clip.name === 'SiegeDrive'));
+            //THREE.AnimationUtils.makeClipAdditive(siegeAction);
+            //THREE.AnimationUtils.makeClipAdditive(siegeREAction);
+            //THREE.AnimationUtils.makeClipAdditive(siegeDriveAction);
+            if (this.siegeDriveAction) {
+                this.siegeDriveAction.setLoop(THREE.LoopRepeat);
+                this.siegeDriveAction.clampWhenFinished = false;
+                this.siegeDriveAction.enable = true;
+
+                // Play the animation fully
+                this.siegeDriveAction.timeScale = 1;
+            }
 
             [this.siegeAction, this.siegeREAction].forEach(action => {
                 action.setLoop(THREE.LoopOnce);
@@ -63,9 +75,6 @@ class Player extends THREE.Mesh {
 
             // Get the rotor bone here, after the model is loaded
             this.rotorBone = tank.getObjectByName("rotor");
-            if (!this.rotorBone) {
-                console.warn("Could not find bone named 'rotor' in tank.glb");
-            }
         });
         scene.add(this);
     }
@@ -79,6 +88,9 @@ class Player extends THREE.Mesh {
     move(deltaTime, keys, playerBody) {
         if (this.isCombatMode || !this.canMove) {
             playerBody.velocity.set(0, playerBody.velocity.y, 0);
+            if (this.siegeDriveAction) {
+                this.siegeDriveAction.paused = true; // Pause "SiegeDrive" animation
+            }
             return;
         }
 
@@ -117,8 +129,18 @@ class Player extends THREE.Mesh {
                 diff += Math.PI * 2;
             }
             this.targetRotationY = currentRotationY + diff;
+
+            if (this.siegeDriveAction) {
+                this.siegeDriveAction.paused = false; // Resume "SiegeDrive" animation
+                if (!this.siegeDriveAction.isRunning()) {
+                    this.siegeDriveAction.reset().play(); // Play "SiegeDrive" animation
+                }
+            }
         } else {
             playerBody.velocity.set(0, playerBody.velocity.y, 0);
+            if (this.siegeDriveAction) {
+                this.siegeDriveAction.paused = true; // Pause "SiegeDrive" animation
+            }
         }
 }
 
@@ -147,6 +169,8 @@ class Player extends THREE.Mesh {
             playerBody.sleep();
             playerBody.velocity.set(0, 0, 0);
         }
+
+        if (this.siegeDriveAction) this.siegeDriveAction.stop(); // Stop "SiegeDrive" animation
     }
 
     /**
@@ -160,28 +184,35 @@ class Player extends THREE.Mesh {
             this.siegeAction.stop();
         }
 
-        if (this.siegeREAction && this.mixer) { // Stellen Sie sicher, dass der Mixer existiert
-            this.canMove = false; // Bewegung sofort deaktivieren
+        if (this.siegeREAction && this.mixer) {
+            this.canMove = false; // Disable movement immediately
 
             const onAnimationFinished = (event) => {
                 if (event.action === this.siegeREAction) {
-                    this.canMove = true; 
+                    this.canMove = true;
                     if (playerBody) {
                         playerBody.wakeUp();
+                    }
+                    if (this.siegeDriveAction) {
+                        this.siegeDriveAction.reset().play(); // Properly reset and play "SiegeDrive" animation
+                        this.siegeDriveAction.setEffectiveWeight(1.0);
                     }
                     this.mixer.removeEventListener('finished', onAnimationFinished);
                 }
             };
-            
 
             this.mixer.addEventListener('finished', onAnimationFinished);
             this.siegeREAction.reset().play();
-
+            this.siegeREAction.setEffectiveWeight(1.0);
         } else {
-            // Wenn keine Animation zum Beenden vorhanden ist oder kein Mixer, Bewegung sofort erlauben
+            // If no exit animation or mixer, allow movement immediately
             this.canMove = true;
             if (playerBody) {
                 playerBody.wakeUp();
+            }
+            if (this.siegeDriveAction) {
+                this.siegeDriveAction.reset().play();
+                this.siegeDriveAction.setEffectiveWeight(1.0);
             }
         }
 
@@ -192,18 +223,9 @@ class Player extends THREE.Mesh {
         }
         this.removeCursorIndicator(scene);
 
-        // PlayerBody aufwecken, falls nicht durch Animation geschehen
-        // Die move() Funktion wird die Bewegung ohnehin stoppen, wenn canMove false ist.
-        if (playerBody && !this.siegeREAction) { // Nur wenn keine Animation gestartet wurde
-             playerBody.wakeUp();
-        } else if (playerBody && this.siegeREAction && !this.canMove) {
-            // Wenn eine Animation läuft, ist der Körper möglicherweise noch im Schlaf,
-            // aber die Bewegung wird durch canMove = false verhindert.
-            // playerBody.wakeUp(); // Kann hier auch schon passieren.
-        }
-         if (playerBody) { // Generelles Aufwecken, falls es noch schläft.
+        if (playerBody && !this.siegeREAction) {
             playerBody.wakeUp();
-         }
+        }
     }
 
     createCursorIndicator(scene, cursorWorld) {
