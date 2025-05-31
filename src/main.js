@@ -188,8 +188,9 @@ function createExplosion(position) {
 
 // --- Game Logic Functions ---
 function updateCooldownBar(progress) {
-  document.getElementById('cooldown-bar').style.width =
-    `${Math.min(1, Math.max(0, progress)) * 100}%`;
+  const cooldownBar = document.getElementById('cooldown-bar');
+  cooldownBar.style.transition = progress === 1 ? 'none' : 'width 0.5s ease-in-out'; // Disable transition when full
+  cooldownBar.style.width = `${Math.min(1, Math.max(0, progress)) * 100}%`;
 }
 
 function updateActiveShots() {

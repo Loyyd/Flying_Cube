@@ -1,0 +1,50 @@
+body {
+  margin: 0;
+  overflow: hidden;
+  background-color: #000; /* Fallback, scene background will override */
+  color: white;
+  font-family: sans-serif;
+}
+
+#canvas-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+canvas {
+  display: block;
+}
+
+#cooldown-bar-container {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  width: 200px;
+  height: 20px;
+  background: linear-gradient(135deg, #444, #222);
+  border: 2px solid #888;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+#cooldown-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #888, #666);
+  border-radius: 10px 0 0 10px;
+  transition: width 0.5s ease-in-out; /* Fixed transition duration */
+}
+
+#game-over-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 48px;
+  color: #ff3333;
+  text-align: center;
+  text-shadow: 2px 2px 4px black;
+  display: none; /* Hidden by default */
+}

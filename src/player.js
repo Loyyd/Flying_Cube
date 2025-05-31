@@ -55,16 +55,10 @@ class Player extends THREE.Mesh {
             this.siegeAction = this.mixer.clipAction(animations.find(clip => clip.name === 'SiegeMode'));
             this.siegeREAction = this.mixer.clipAction(animations.find(clip => clip.name === 'SiegeModeRE'));
             this.siegeDriveAction = this.mixer.clipAction(animations.find(clip => clip.name === 'SiegeDrive'));
-            //THREE.AnimationUtils.makeClipAdditive(siegeAction);
-            //THREE.AnimationUtils.makeClipAdditive(siegeREAction);
-            //THREE.AnimationUtils.makeClipAdditive(siegeDriveAction);
             if (this.siegeDriveAction) {
                 this.siegeDriveAction.setLoop(THREE.LoopRepeat);
                 this.siegeDriveAction.clampWhenFinished = false;
                 this.siegeDriveAction.enable = true;
-
-                // Play the animation fully
-                this.siegeDriveAction.timeScale = 1;
             }
 
             [this.siegeAction, this.siegeREAction].forEach(action => {
@@ -72,8 +66,6 @@ class Player extends THREE.Mesh {
                 action.clampWhenFinished = true;
                 action.enable = true;
             });
-
-            // Get the rotor bone here, after the model is loaded
             this.rotorBone = tank.getObjectByName("rotor");
         });
         scene.add(this);
