@@ -9,7 +9,20 @@
 <body>
   <div id="canvas-container"></div>
   <div id="cooldown-bar-container">
-    <div id="cooldown-bar"></div>
+    <svg id="cooldown-bar" viewBox="0 0 36 36">
+      <path
+        class="circle-bg"
+        d="M18 2.0845
+           a 15.9155 15.9155 0 0 1 0 31.831
+           a 15.9155 15.9155 0 0 1 0 -31.831"
+      />
+      <path
+        class="circle"
+        d="M18 2.0845
+           a 15.9155 15.9155 0 0 1 0 31.831
+           a 15.9155 15.9155 0 0 1 0 -31.831"
+      />
+    </svg>
   </div>
   <div id="game-over-message">GAME OVER</div>
   <script type="module" src="src/main.js"></script>

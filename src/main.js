@@ -45,21 +45,26 @@ world.addContactMaterial(defaultContactMaterial);
 world.defaultContactMaterial = defaultContactMaterial;
 
 // --- Lighting ---
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.4); // Softer ambient light
 scene.add(ambientLight);
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
-directionalLight.position.set(GRID_SIZE * 0.3, GRID_SIZE * 0.6, GRID_SIZE * 0.2);
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5); // Brighter directional light
+directionalLight.position.set(GRID_SIZE * 0.3, GRID_SIZE * 0.8, GRID_SIZE * 0.2);
 directionalLight.castShadow = true;
-directionalLight.shadow.mapSize.width = 2048;
-directionalLight.shadow.mapSize.height = 2048;
+directionalLight.shadow.mapSize.width = 4096; // Higher resolution shadows
+directionalLight.shadow.mapSize.height = 4096;
 directionalLight.shadow.camera.near = 0.5;
-directionalLight.shadow.camera.far = GRID_SIZE * 1.5;
+directionalLight.shadow.camera.far = GRID_SIZE * 2;
 directionalLight.shadow.camera.left = -GRID_SIZE / 1.5;
 directionalLight.shadow.camera.right = GRID_SIZE / 1.5;
 directionalLight.shadow.camera.top = GRID_SIZE / 1.5;
 directionalLight.shadow.camera.bottom = -GRID_SIZE / 1.5;
 scene.add(directionalLight);
+
+const pointLight = new THREE.PointLight(0xffaa33, 0.8, 50); // Add a warm point light
+pointLight.position.set(0, GRID_SIZE * 0.6, 0);
+pointLight.castShadow = true;
+scene.add(pointLight);
 
 // --- Raycasting & Mouse ---
 const raycaster = new THREE.Raycaster();
@@ -72,12 +77,24 @@ let activeMode = false;
 let canShoot = true;
 let shotCooldownTimer = 0;
 
+
+
+// --- Renderer Enhancements ---
+renderer.physicallyCorrectLights = true; // Enable physically correct lighting
+renderer.outputEncoding = THREE.sRGBEncoding; // Use sRGB encoding for better color accuracy
+renderer.toneMapping = THREE.ACESFilmicToneMapping; // Use ACES Filmic tone mapping
+renderer.toneMappingExposure = 1.2; // Adjust exposure for better brightness
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Use soft shadows
+
+// --- Fog Enhancements ---
+scene.fog = new THREE.Fog(SCENE_BACKGROUND_COLOR, 10, GRID_SIZE * 1.5); // Add linear fog for depth
+
 // --- Ground Plane ---
 const groundGeometry = new THREE.PlaneGeometry(GRID_SIZE, GRID_SIZE);
 const groundMaterial = new THREE.MeshStandardMaterial({
   color: 0x4a4a4a,
-  roughness: 0.9,
-  metalness: 0.1
+  roughness: 0.8, // Slightly smoother ground
+  metalness: 0.2 // Add a subtle metallic effect
 });
 const mainGround = new THREE.Mesh(groundGeometry, groundMaterial);
 mainGround.rotation.x = -Math.PI / 2;
@@ -188,9 +205,9 @@ function createExplosion(position) {
 
 // --- Game Logic Functions ---
 function updateCooldownBar(progress) {
-  const cooldownBar = document.getElementById('cooldown-bar');
-  cooldownBar.style.transition = progress === 1 ? 'none' : 'width 0.5s ease-in-out'; // Disable transition when full
-  cooldownBar.style.width = `${Math.min(1, Math.max(0, progress)) * 100}%`;
+  const cooldownBar = document.querySelector('#cooldown-bar .circle');
+  const offset = 100 - progress * 100; // Calculate stroke-dashoffset
+  cooldownBar.style.strokeDashoffset = offset;
 }
 
 function updateActiveShots() {
@@ -239,6 +256,7 @@ function animate() {
   }
 
   renderer.render(scene, camera);
+  renderer.setClearColor(0x1e1e1e); // Set a darker background color for better contrast
 }
 
 // --- Window Resize ---

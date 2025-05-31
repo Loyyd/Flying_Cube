@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 // IMPORTANT CONSTANTS
 const CAMERA_OFFSET_X = 0;
-const CAMERA_OFFSET_Y = 13;
+const CAMERA_OFFSET_Y = 10;
 const CAMERA_OFFSET_Z = 5;
 const CAMERA_LERP_FACTOR = 0.05; // Controls camera smoothness (0.0 - 1.0, higher is faster)
 
