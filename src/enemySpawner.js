@@ -4,7 +4,7 @@ import Enemy from './enemy.js';
 const BOX_SIZE = 1;
 const SPAWN_RADIUS = 2;
 const NUM_BOXES = 2;
-const ENEMY_SPAWN_INTERVAL_MS = 1000;
+const ENEMY_SPAWN_INTERVAL_MS = 3000;
 
 class EnemySpawner {
   constructor(scene, world, player) {

@@ -8,8 +8,8 @@ const ROTATION_SPEED = 5.0; // Adjust this value to control rotation speed
 
 const SHOT_RANGE = 10;
 const SHOT_RADIUS = 1;
-const SHOT_EFFECT_DURATION_S = 1.01;
-const SHOT_COOLDOWN_S = 0.5;
+const SHOT_EFFECT_DURATION_S = 0.01;
+const SHOT_COOLDOWN_S = 2;
 const SHOT_ACTIVE_COLOR = 0xff0000;
 const EXPLOSION_DELAY_S = 0.3;
 
