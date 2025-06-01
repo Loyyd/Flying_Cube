@@ -26,9 +26,18 @@
       />
     </svg>
   </div>
-  <div id="shot-radius-ui">
-    <button id="increase-radius-btn" title="Increase Shot Radius">+</button>
-    <div id="shot-radius-squares"></div>
+  <div id="shot-radius-ui" style="display: flex; flex-direction: column; align-items: center; margin-top: 12px;">
+    <div style="display: flex; align-items: center; justify-content: center;">
+      <button id="increase-radius-btn" title="Increase Shot Radius">+</button>
+      <span id="increase-radius-info" style="display: flex; align-items: center; margin-left: 10px;">
+        <span style="margin-left:6px;">Increase Shot Radius</span>
+        <span style="color:#f9b233; font-weight:bold; margin-left:8px; display: flex; align-items: center;">
+          <svg width="14" height="14" style="vertical-align:middle; margin-right:2px;" viewBox="0 0 20 20" fill="currentColor"><circle cx="10" cy="10" r="9" stroke="#f9b233" stroke-width="2" fill="none"/><text x="10" y="15" text-anchor="middle" font-size="12" fill="#f9b233" font-family="Arial" font-weight="bold">S</text></svg>
+          20
+        </span>
+      </span>
+    </div>
+    <div id="shot-radius-squares" style="margin-top: 6px;"></div>
   </div>
   <div id="game-over-message">GAME OVER</div>
   <script type="module" src="src/main.js"></script>

@@ -21,8 +21,8 @@ const SPARK_SIZE_RANGE = { min: 1.0, max: 2.0 };
 const SPARK_LIFETIME_RANGE = { min: 0.3, max: 0.6 };
 
 // Explosion parameters
-const explosionForce = 3;
-const explosionRadius = 3;
+const explosionForce = 1;
+const explosionRadius = 1;
 
 // Helper: Random float in range
 function randomRange(a, b) {
@@ -143,7 +143,8 @@ export class Explosion {
           const forceMagnitude = force * (1 - distance / radius); // Decrease force with distance
           const impulse = forceDirection.scale(forceMagnitude); // Scale the normalized vector
 
-          body.applyImpulse(impulse, bodyPosition);
+          // Apply impulse at center of mass to avoid spinning
+          body.applyImpulse(impulse, body.position);
         }
       }
     });
