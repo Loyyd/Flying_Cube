@@ -38,7 +38,7 @@ const increaseRadiusBtn = document.getElementById('increase-radius-btn');
 
 function updateShotRadiusUI() {
   shotRadiusSquaresContainer.innerHTML = '';
-  for (let i = 1; i <= SHOT_RADIUS_MAX; i++) {
+  for (let i = 1; i <= SHOT_RADIUS_MAX; i=i+0.2) {
     const square = document.createElement('div');
     square.className = 'shot-radius-square' + (i <= SHOT_RADIUS ? ' filled' : '');
     shotRadiusSquaresContainer.appendChild(square);
@@ -48,7 +48,7 @@ updateShotRadiusUI();
 
 increaseRadiusBtn.addEventListener('click', () => {
   if (SHOT_RADIUS < SHOT_RADIUS_MAX && GameState.score >= 20) {
-    SHOT_RADIUS++;
+    SHOT_RADIUS = SHOT_RADIUS + 0.2;
     GameState.score -= 20;
     updateShotRadiusUI();
     updateScoreUI();

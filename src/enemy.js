@@ -58,6 +58,8 @@ class Enemy {
     // Wandering state
     this.wanderTarget = this._getRandomWanderTarget();
     this.wanderTimer = 0;
+
+    this.timeSinceHit = null;
   }
 
   _getRandomWanderTarget() {
@@ -79,14 +81,15 @@ class Enemy {
 
   update(deltaTime) {
     if (this.isRigid) {
-      // Stop bouncing on the ground
-
-      /* if (this.body.position.y <= ENEMY_RADIUS) {
-        this.body.velocity.y = 0;
-        this.body.position.y = ENEMY_RADIUS;
-      } */
-
-
+      // Kill after 5 seconds in dark red state
+      if (this.timeSinceHit !== null) {
+        this.timeSinceHit += deltaTime;
+        if (this.timeSinceHit >= 5) {
+          this.dispose();
+          this._disposed = true;
+          return;
+        }
+      }
       this.mesh.position.copy(this.body.position);
       this.mesh.quaternion.copy(this.body.quaternion);
       return;
@@ -147,13 +150,17 @@ class Enemy {
     this.body.type = CANNON.Body.DYNAMIC;
     this.body.updateMassProperties();
 
+    // Start timer for disposal
+    this.timeSinceHit = 0;
   }
 
   dispose() {
+    if (this._disposed) return;
     this.scene.remove(this.mesh);
     this.world.removeBody(this.body);
     if (this.mesh.geometry) this.mesh.geometry.dispose();
     if (this.mesh.material) this.mesh.material.dispose();
+    this._disposed = true;
   }
 }
 

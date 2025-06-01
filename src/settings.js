@@ -56,7 +56,7 @@ export const SCENE_BACKGROUND_COLOR = 0x282c34;
 
 // Shot radius UI
 export const SHOT_RADIUS_MIN = 1;
-export const SHOT_RADIUS_MAX = 5;
+export const SHOT_RADIUS_MAX = 2;
 
 // --- Physics Material ---
 import * as CANNON from 'cannon-es';
