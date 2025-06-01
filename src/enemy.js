@@ -7,7 +7,8 @@ import {
   ENEMY_WANDER_SPEED,
   ENEMY_DARK_RED as DARK_RED,
   ENEMY_CHASE_RADIUS as CHASE_RADIUS,
-  ENEMY_WANDER_CHANGE_INTERVAL as WANDER_CHANGE_INTERVAL
+  ENEMY_WANDER_CHANGE_INTERVAL as WANDER_CHANGE_INTERVAL,
+  defaultMaterial
 } from './settings.js';
 
 class Enemy {
@@ -25,8 +26,7 @@ class Enemy {
 
     // Physics
     const shape = new CANNON.Box(new CANNON.Vec3(ENEMY_RADIUS, ENEMY_RADIUS, ENEMY_RADIUS));
-    this.body = new CANNON.Body({ mass: 1 });
-    //this.body.linearDamping = 0.9;
+    this.body = new CANNON.Body({ mass: 1 ,material: defaultMaterial });
     this.body.addShape(shape);
 
     // Spawn at random position, but not within SHOT_RANGE of player
@@ -51,6 +51,7 @@ class Enemy {
 
     // Sync mesh to body
     this.mesh.position.copy(this.body.position);
+    this.mesh.quaternion.copy(this.body.quaternion);
 
     this.isRigid = false;
 
@@ -79,11 +80,15 @@ class Enemy {
   update(deltaTime) {
     if (this.isRigid) {
       // Stop bouncing on the ground
-      if (this.body.position.y <= ENEMY_RADIUS) {
+
+      /* if (this.body.position.y <= ENEMY_RADIUS) {
         this.body.velocity.y = 0;
         this.body.position.y = ENEMY_RADIUS;
-      }
+      } */
+
+
       this.mesh.position.copy(this.body.position);
+      this.mesh.quaternion.copy(this.body.quaternion);
       return;
     }
 
@@ -127,6 +132,7 @@ class Enemy {
 
     // Sync mesh to body
     this.mesh.position.copy(this.body.position);
+    this.mesh.quaternion.copy(this.body.quaternion);
   }
 
   hitByShot() {
@@ -137,11 +143,10 @@ class Enemy {
     }
     // Make body dynamic (full rigidbody)
     this.isRigid = true;
+    this.body.mass = 1; // Set a small mass to allow movement
     this.body.type = CANNON.Body.DYNAMIC;
-    this.body.mass = 1;
     this.body.updateMassProperties();
-    // Optionally, give a little upward impulse for effect
-    //this.body.velocity.y = 4;
+
   }
 
   dispose() {

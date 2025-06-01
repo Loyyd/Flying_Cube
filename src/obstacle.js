@@ -3,11 +3,12 @@ import * as CANNON from 'cannon-es';
 import {
   OBSTACLE_WALL_COLOR,
   OBSTACLE_RANDOM_COLOR,
-  NUM_RANDOM_OBSTACLES
+  NUM_RANDOM_OBSTACLES,
+  defaultMaterial
 } from './settings.js';
 
 export class Obstacle {
-  constructor(x, y, z, geometry, material, isStatic, scene, world, defaultMaterial) {
+  constructor(x, y, z, geometry, material, isStatic, scene, world) {
     this.mesh = new THREE.Mesh(geometry, material);
     this.mesh.position.set(x, y, z);
     this.mesh.castShadow = true;

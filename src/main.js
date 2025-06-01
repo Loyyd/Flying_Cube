@@ -13,20 +13,19 @@ import {
   PLAYER_SIZE,
   SCENE_BACKGROUND_COLOR,
   SHOT_RADIUS_MIN,
-  SHOT_RADIUS_MAX
+  SHOT_RADIUS_MAX,
+  defaultMaterial,
+  defaultContactMaterial // <-- import here
 } from './settings.js';
-//import Player, { SHOT_RADIUS as DEFAULT_SHOT_RADIUS } from './player.js';
 import { Explosion } from './explosion.js';
 import CameraManager from './camera.js';
 import { ObstacleManager } from './obstacleManager.js';
 import EnemySpawner from './enemySpawner.js';
 
-// --- Game Constants ---
-
 // --- Shot Radius UI State ---
 let SHOT_RADIUS = INITIAL_SHOT_RADIUS;
 
-// --- Score State ---w
+// --- Score State ---
 const scoreValueElem = document.getElementById('score-value');
 function updateScoreUI() {
   scoreValueElem.textContent = GameState.score;
@@ -77,17 +76,6 @@ world.gravity.set(0, -9.82, 0);
 world.broadphase = new CANNON.SAPBroadphase(world);
 world.allowSleep = true;
 
-const defaultMaterial = new CANNON.Material('default');
-const defaultContactMaterial = new CANNON.ContactMaterial(
-  defaultMaterial,
-  defaultMaterial,
-  {
-    friction: 0.5,
-    restitution: 0.2,
-    contactEquationStiffness: 1e8,
-    contactEquationRelaxation: 3
-  }
-);
 world.addContactMaterial(defaultContactMaterial);
 world.defaultContactMaterial = defaultContactMaterial;
 
@@ -131,7 +119,7 @@ groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
 world.addBody(groundBody);
 
 // --- Obstacles ---
-const obstacleManager = new ObstacleManager(scene, world, defaultMaterial, GRID_SIZE);
+const obstacleManager = new ObstacleManager(scene, world, GRID_SIZE);
 obstacleManager.initializeObstacles();
 
 // --- Player ---
@@ -209,7 +197,6 @@ renderer.domElement.addEventListener('click', (event) => {
     player.lastShotDirection.y = 0;
 
     setTimeout(() => {
-      // Use Player's method to create the red circle
       const shotCircle = player.createShotRangeCircle(scene, intersectPoint, SHOT_ACTIVE_COLOR, SHOT_RADIUS);
 
       activeShots.push({
@@ -230,7 +217,7 @@ function createExplosion(position) {
 // --- Cooldown Bar ---
 function updateCooldownBar(progress) {
   const cooldownBar = document.querySelector('#cooldown-bar .circle');
-  const offset = 100 - progress * 100; // Use 200 instead of 100
+  const offset = 100 - progress * 100;
   cooldownBar.style.strokeDashoffset = offset;
 }
 
@@ -256,17 +243,14 @@ function animate() {
   cameraManager.update();
   requestAnimationFrame(animate);
   const deltaTime = clock.getDelta();
-  const elapsedTime = clock.elapsedTime;
 
   world.step(1 / 60, deltaTime, 3);
 
   player.update(deltaTime, keys, cursorWorld, scene, playerBody);
 
-  // --- Enemy Spawner Update ---
   enemySpawner.update(deltaTime);
 
-  // --- Enemy hit detection with active shots ---
-  // Check all enemies managed by the spawner
+  // Enemy hit detection with active shots
   for (const shot of activeShots) {
     for (const enemy of enemySpawner.enemies) {
       if (!enemy.isRigid) {

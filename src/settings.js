@@ -34,7 +34,7 @@ export const ENEMY_RADIUS = 0.5;
 export const ENEMY_SPEED = 1.0;
 export const ENEMY_WANDER_SPEED = 1;
 export const ENEMY_DARK_RED = 0x660000;
-export const ENEMY_CHASE_RADIUS = 1;
+export const ENEMY_CHASE_RADIUS = 8;
 export const ENEMY_WANDER_CHANGE_INTERVAL = 1;
 
 // EnemySpawner settings
@@ -57,3 +57,17 @@ export const SCENE_BACKGROUND_COLOR = 0x282c34;
 // Shot radius UI
 export const SHOT_RADIUS_MIN = 1;
 export const SHOT_RADIUS_MAX = 5;
+
+// --- Physics Material ---
+import * as CANNON from 'cannon-es';
+export const defaultMaterial = new CANNON.Material('default');
+export const defaultContactMaterial = new CANNON.ContactMaterial(
+  defaultMaterial,
+  defaultMaterial,
+  {
+    friction: 0.5,
+    restitution: 0.2,
+    contactEquationStiffness: 1e8,
+    contactEquationRelaxation: 3
+  }
+);
