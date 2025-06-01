@@ -46,7 +46,7 @@ export const ENEMY_SPAWN_INTERVAL_MS = 3000;
 // Camera settings
 export const CAMERA_OFFSET_X = 0;
 export const CAMERA_OFFSET_Y = 10;
-export const CAMERA_OFFSET_Z = 5;
+export const CAMERA_OFFSET_Z = 10;
 export const CAMERA_LERP_FACTOR = 0.05;
 
 // Game/scene settings

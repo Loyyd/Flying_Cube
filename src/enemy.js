@@ -18,7 +18,8 @@ class Enemy {
 
     // Visual
     const geometry = new THREE.BoxGeometry(ENEMY_RADIUS * 2, ENEMY_RADIUS * 2, ENEMY_RADIUS * 2);
-    const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    // Use MeshStandardMaterial like obstacles, but purple color
+    const material = new THREE.MeshStandardMaterial({ color: 0x800080, roughness: 0.8, metalness: 0.2 });
     this.mesh = new THREE.Mesh(geometry, material);
     this.scene.add(this.mesh);
 
