@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import Player from './player.js';
 import {
+  GameState,
   SHOT_RANGE,
   SHOT_RADIUS as INITIAL_SHOT_RADIUS,
   SHOT_EFFECT_DURATION_S,
@@ -25,11 +26,10 @@ import EnemySpawner from './enemySpawner.js';
 // --- Shot Radius UI State ---
 let SHOT_RADIUS = INITIAL_SHOT_RADIUS;
 
-// --- Score State ---
-let score = 0;
+// --- Score State ---w
 const scoreValueElem = document.getElementById('score-value');
 function updateScoreUI() {
-  scoreValueElem.textContent = score;
+  scoreValueElem.textContent = GameState.score;
 }
 updateScoreUI();
 
@@ -48,9 +48,9 @@ function updateShotRadiusUI() {
 updateShotRadiusUI();
 
 increaseRadiusBtn.addEventListener('click', () => {
-  if (SHOT_RADIUS < SHOT_RADIUS_MAX && score >= 20) {
+  if (SHOT_RADIUS < SHOT_RADIUS_MAX && GameState.score >= 20) {
     SHOT_RADIUS++;
-    score -= 20;
+    GameState.score -= 20;
     updateShotRadiusUI();
     updateScoreUI();
   }
@@ -273,7 +273,7 @@ function animate() {
         const dist = enemy.mesh.position.distanceTo(shot.position);
         if (dist <= SHOT_RADIUS) {
           enemy.hitByShot();
-          score++;
+          GameState.score++;
           updateScoreUI();
         }
       }

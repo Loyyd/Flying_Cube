@@ -25,6 +25,7 @@ class Enemy {
     // Physics
     const shape = new CANNON.Box(new CANNON.Vec3(ENEMY_RADIUS, ENEMY_RADIUS, ENEMY_RADIUS));
     this.body = new CANNON.Body({ mass: 1 });
+    //this.body.linearDamping = 0.9;
     this.body.addShape(shape);
 
     // Spawn at random position, but not within SHOT_RANGE of player
@@ -53,12 +54,34 @@ class Enemy {
     this.isRigid = false;
 
     // Wandering state
-    this.wanderDirection = new CANNON.Vec3(Math.random() - 0.5, 0, Math.random() - 0.5).unit();
+    this.wanderTarget = this._getRandomWanderTarget();
     this.wanderTimer = 0;
+  }
+
+  _getRandomWanderTarget() {
+    // Pick a random point within a 40x40 area, not too close to the player
+    let target;
+    do {
+      target = {
+        x: Math.random() * 40 - 20,
+        z: Math.random() * 40 - 20
+      };
+    } while (
+      Math.hypot(
+        target.x - this.player.position.x,
+        target.z - this.player.position.z
+      ) < SHOT_RANGE
+    );
+    return target;
   }
 
   update(deltaTime) {
     if (this.isRigid) {
+      // Stop bouncing on the ground
+      if (this.body.position.y <= ENEMY_RADIUS) {
+        this.body.velocity.y = 0;
+        this.body.position.y = ENEMY_RADIUS;
+      }
       this.mesh.position.copy(this.body.position);
       return;
     }
@@ -80,18 +103,25 @@ class Enemy {
         this.body.velocity.z = 0;
       }
     } else {
-      // Wander randomly
-      this.wanderTimer -= deltaTime;
-      if (this.wanderTimer <= 0) {
-        // Pick a new random direction
-        this.wanderDirection = new CANNON.Vec3(Math.random() - 0.5, 0, Math.random() - 0.5);
-        if (this.wanderDirection.length() > 0.01) {
-          this.wanderDirection.normalize();
-        }
-        this.wanderTimer = WANDER_CHANGE_INTERVAL * (0.5 + Math.random());
+      // Wander toward target
+      const tx = this.wanderTarget.x - this.body.position.x;
+      const tz = this.wanderTarget.z - this.body.position.z;
+      const distToTarget = Math.sqrt(tx * tx + tz * tz);
+
+      if (distToTarget < 1.0) {
+        // Arrived at target, pick a new one
+        this.wanderTarget = this._getRandomWanderTarget();
       }
-      this.body.velocity.x = this.wanderDirection.x * ENEMY_WANDER_SPEED;
-      this.body.velocity.z = this.wanderDirection.z * ENEMY_WANDER_SPEED;
+
+      const direction = new CANNON.Vec3(tx, 0, tz);
+      if (direction.length() > 0.01) {
+        direction.normalize();
+        this.body.velocity.x = direction.x * ENEMY_WANDER_SPEED;
+        this.body.velocity.z = direction.z * ENEMY_WANDER_SPEED;
+      } else {
+        this.body.velocity.x = 0;
+        this.body.velocity.z = 0;
+      }
     }
 
     // Sync mesh to body
