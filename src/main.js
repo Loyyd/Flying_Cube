@@ -6,7 +6,7 @@ import { SHOT_RANGE, SHOT_RADIUS as INITIAL_SHOT_RADIUS, SHOT_EFFECT_DURATION_S,
 import { Explosion } from './explosion.js';
 import CameraManager from './camera.js';
 import { ObstacleManager } from './obstacleManager.js';
-import Enemy from './enemy.js'; // <-- Add this import
+import EnemySpawner from './enemySpawner.js';
 
 // --- Game Constants ---
 const GRID_SIZE = 50;
@@ -231,9 +231,8 @@ function updateActiveShots() {
   }
 }
 
-const enemies = [];
-let lastEnemySpawn = 0;
-const ENEMY_SPAWN_INTERVAL = 2.0; // seconds
+// --- Enemy Spawner ---
+const enemySpawner = new EnemySpawner(scene, world, player);
 
 // --- Animation Loop ---
 function animate() {
@@ -246,17 +245,13 @@ function animate() {
 
   player.update(deltaTime, keys, cursorWorld, scene, playerBody);
 
-  // --- Enemy Spawning and Updating ---
-  if (elapsedTime - lastEnemySpawn > ENEMY_SPAWN_INTERVAL) {
-    const enemy = new Enemy(scene, world, player);
-    enemies.push(enemy);
-    lastEnemySpawn = elapsedTime;
-  }
-  enemies.forEach(enemy => enemy.update(deltaTime));
+  // --- Enemy Spawner Update ---
+  enemySpawner.update(deltaTime);
 
   // --- Enemy hit detection with active shots ---
+  // Check all enemies managed by the spawner
   for (const shot of activeShots) {
-    for (const enemy of enemies) {
+    for (const enemy of enemySpawner.enemies) {
       if (!enemy.isRigid) {
         const dist = enemy.mesh.position.distanceTo(shot.position);
         if (dist <= SHOT_RADIUS) {
