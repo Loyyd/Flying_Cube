@@ -5,8 +5,9 @@ import { SHOT_RANGE, SHOT_RADIUS, SHOT_EFFECT_DURATION_S, SHOT_COOLDOWN_S, SHOT_
 import { Explosion } from './explosion.js';
 import CameraManager from './camera.js';
 import { ObstacleManager } from './obstacleManager.js';
+import Enemy from './enemy.js'; // <-- Add this import
 
-// --- Core Constants ---
+// --- Game Constants ---
 const GRID_SIZE = 50;
 const PLAYER_SIZE = 1;
 const SCENE_BACKGROUND_COLOR = 0x282c34;
@@ -14,7 +15,7 @@ const SCENE_BACKGROUND_COLOR = 0x282c34;
 // --- Scene & Renderer ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(SCENE_BACKGROUND_COLOR);
-scene.fog = new THREE.Fog(SCENE_BACKGROUND_COLOR, 10, GRID_SIZE * 1.5);
+scene.fog = new THREE.FogExp2(SCENE_BACKGROUND_COLOR, 0.01);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -164,16 +165,8 @@ renderer.domElement.addEventListener('click', (event) => {
     player.lastShotDirection.y = 0;
 
     setTimeout(() => {
-      const circleGeometry = new THREE.CircleGeometry(SHOT_RADIUS, 32);
-      const circleMaterial = new THREE.MeshBasicMaterial({
-        color: SHOT_ACTIVE_COLOR,
-        transparent: true,
-        opacity: 0.5
-      });
-      const shotCircle = new THREE.Mesh(circleGeometry, circleMaterial);
-      shotCircle.rotation.x = -Math.PI / 2;
-      shotCircle.position.set(intersectPoint.x, 0.01, intersectPoint.z);
-      scene.add(shotCircle);
+      // Use Player's method to create the red circle
+      const shotCircle = player.createShotRangeCircle(scene, intersectPoint, SHOT_RADIUS, SHOT_ACTIVE_COLOR);
 
       activeShots.push({
         mesh: shotCircle,
@@ -193,7 +186,7 @@ function createExplosion(position) {
 // --- Cooldown Bar ---
 function updateCooldownBar(progress) {
   const cooldownBar = document.querySelector('#cooldown-bar .circle');
-  const offset = 100 - progress * 100;
+  const offset = 100 - progress * 100; // Use 200 instead of 100
   cooldownBar.style.strokeDashoffset = offset;
 }
 
@@ -211,6 +204,10 @@ function updateActiveShots() {
   }
 }
 
+const enemies = [];
+let lastEnemySpawn = 0;
+const ENEMY_SPAWN_INTERVAL = 2.0; // seconds
+
 // --- Animation Loop ---
 function animate() {
   cameraManager.update();
@@ -221,6 +218,14 @@ function animate() {
   world.step(1 / 60, deltaTime, 3);
 
   player.update(deltaTime, keys, cursorWorld, scene, playerBody);
+
+  // --- Enemy Spawning and Updating ---
+  if (elapsedTime - lastEnemySpawn > ENEMY_SPAWN_INTERVAL) {
+    const enemy = new Enemy(scene, world, player);
+    enemies.push(enemy);
+    lastEnemySpawn = elapsedTime;
+  }
+  enemies.forEach(enemy => enemy.update(deltaTime));
 
   if (shotCooldownTimer > 0) {
     shotCooldownTimer -= deltaTime;

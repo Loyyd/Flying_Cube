@@ -264,6 +264,24 @@ class Player extends THREE.Mesh {
     }
 
     /**
+     * Creates and adds a red circle to the scene at the given position.
+     * Returns the mesh for later removal.
+     */
+    createShotRangeCircle(scene, position, radius, color = 0xff0000) {
+        const circleGeometry = new THREE.CircleGeometry(radius, 32);
+        const circleMaterial = new THREE.MeshBasicMaterial({
+            color: color,
+            transparent: true,
+            opacity: 0.5
+        });
+        const shotCircle = new THREE.Mesh(circleGeometry, circleMaterial);
+        shotCircle.rotation.x = -Math.PI / 2;
+        shotCircle.position.set(position.x, 0.01, position.z);
+        scene.add(shotCircle);
+        return shotCircle;
+    }
+
+    /**
      * Updates the player's state, including movement and combat mode visuals.
      * @param {number} deltaTime - The time elapsed since the last frame.
      * @param {object} keys - Object containing current key states.
