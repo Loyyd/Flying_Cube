@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 
-export const OBSTACLE_WALL_COLOR = 0x666666;
-export const OBSTACLE_RANDOM_COLOR = 0x5070C0;
+export const OBSTACLE_WALL_COLOR = 50549;
+export const OBSTACLE_RANDOM_COLOR = 50549;
 export const NUM_RANDOM_OBSTACLES = 50;
 
 export class Obstacle {
@@ -35,13 +35,13 @@ export class Obstacle {
 export function initializeObstacles(scene, world, defaultMaterial, GRID_SIZE, obstacleBodies) {
   const wallMaterial = new THREE.MeshStandardMaterial({
     color: OBSTACLE_WALL_COLOR,
-    roughness: 0.8,
-    metalness: 0.1
+    roughness: 0.2,
+    metalness: 0.0
   });
   const randomObstacleMaterial = new THREE.MeshStandardMaterial({
     color: OBSTACLE_RANDOM_COLOR,
-    roughness: 0.7,
-    metalness: 0.1
+    roughness: 0.3,
+    metalness: 0.0
   });
   const wallGeo = new THREE.BoxGeometry(1, 2, 1);
   const randomObstacleGeo = new THREE.BoxGeometry(1, 1.5, 1);

@@ -1,30 +1,32 @@
 import * as THREE from 'three';
-import * as CANNON from 'cannon-es'; 
+import * as CANNON from 'cannon-es';
 import Player from './player.js';
 import { SHOT_RANGE, SHOT_RADIUS, SHOT_EFFECT_DURATION_S, SHOT_COOLDOWN_S, SHOT_ACTIVE_COLOR, EXPLOSION_DELAY_S } from './player.js';
 import { Explosion } from './explosion.js';
-import CameraManager from './camera.js'; 
+import CameraManager from './camera.js';
 import { ObstacleManager } from './obstacleManager.js';
 
-// --- Game Constants ---
+// --- Core Constants ---
 const GRID_SIZE = 50;
 const PLAYER_SIZE = 1;
 const SCENE_BACKGROUND_COLOR = 0x282c34;
 
-// --- Scene Setup ---
+// --- Scene & Renderer ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(SCENE_BACKGROUND_COLOR);
-scene.fog = new THREE.FogExp2(SCENE_BACKGROUND_COLOR, 0.01);
+scene.fog = new THREE.Fog(SCENE_BACKGROUND_COLOR, 10, GRID_SIZE * 1.5);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.physicallyCorrectLights = true;
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
 document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-const clock = new THREE.Clock();
-
-// --- Physics World Setup ---
+// --- Physics World ---
 const world = new CANNON.World();
 world.gravity.set(0, -9.82, 0);
 world.broadphase = new CANNON.SAPBroadphase(world);
@@ -45,13 +47,11 @@ world.addContactMaterial(defaultContactMaterial);
 world.defaultContactMaterial = defaultContactMaterial;
 
 // --- Lighting ---
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.4); // Softer ambient light
-scene.add(ambientLight);
-
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5); // Brighter directional light
+scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
 directionalLight.position.set(GRID_SIZE * 0.3, GRID_SIZE * 0.8, GRID_SIZE * 0.2);
 directionalLight.castShadow = true;
-directionalLight.shadow.mapSize.width = 4096; // Higher resolution shadows
+directionalLight.shadow.mapSize.width = 4096;
 directionalLight.shadow.mapSize.height = 4096;
 directionalLight.shadow.camera.near = 0.5;
 directionalLight.shadow.camera.far = GRID_SIZE * 2;
@@ -61,40 +61,17 @@ directionalLight.shadow.camera.top = GRID_SIZE / 1.5;
 directionalLight.shadow.camera.bottom = -GRID_SIZE / 1.5;
 scene.add(directionalLight);
 
-const pointLight = new THREE.PointLight(0xffaa33, 0.8, 50); // Add a warm point light
+const pointLight = new THREE.PointLight(0xffaa33, 0.8, 50);
 pointLight.position.set(0, GRID_SIZE * 0.6, 0);
 pointLight.castShadow = true;
 scene.add(pointLight);
 
-// --- Raycasting & Mouse ---
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-let cursorWorld = new THREE.Vector3();
-const groundPlaneRay = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-
-// --- Game State ---
-let activeMode = false;
-let canShoot = true;
-let shotCooldownTimer = 0;
-
-
-
-// --- Renderer Enhancements ---
-renderer.physicallyCorrectLights = true; // Enable physically correct lighting
-renderer.outputEncoding = THREE.sRGBEncoding; // Use sRGB encoding for better color accuracy
-renderer.toneMapping = THREE.ACESFilmicToneMapping; // Use ACES Filmic tone mapping
-renderer.toneMappingExposure = 1.2; // Adjust exposure for better brightness
-renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Use soft shadows
-
-// --- Fog Enhancements ---
-scene.fog = new THREE.Fog(SCENE_BACKGROUND_COLOR, 10, GRID_SIZE * 1.5); // Add linear fog for depth
-
-// --- Ground Plane ---
+// --- Ground ---
 const groundGeometry = new THREE.PlaneGeometry(GRID_SIZE, GRID_SIZE);
 const groundMaterial = new THREE.MeshStandardMaterial({
   color: 0x4a4a4a,
-  roughness: 0.8, // Slightly smoother ground
-  metalness: 0.2 // Add a subtle metallic effect
+  roughness: 0.8,
+  metalness: 0.2
 });
 const mainGround = new THREE.Mesh(groundGeometry, groundMaterial);
 mainGround.rotation.x = -Math.PI / 2;
@@ -116,22 +93,32 @@ obstacleManager.initializeObstacles();
 const player = new Player();
 player.loadModel(scene);
 
-// --- Camera Setup ---
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const cameraManager = new CameraManager(camera, player);
-
 const playerShape = new CANNON.Box(new CANNON.Vec3(PLAYER_SIZE * 1.3, PLAYER_SIZE, PLAYER_SIZE * 1.3));
 const playerBody = new CANNON.Body({ type: CANNON.Body.KINEMATIC, material: defaultMaterial });
 playerBody.addShape(playerShape);
 playerBody.position.set(player.position.x, player.position.y, player.position.z);
 world.addBody(playerBody);
 
-// --- Active Shots & Explosions ---
+// --- Camera ---
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const cameraManager = new CameraManager(camera, player);
+
+// --- State ---
+const clock = new THREE.Clock();
 const activeShots = [];
 const explosions = [];
-
-// --- Input Handling ---
 const keys = {};
+let activeMode = false;
+let canShoot = true;
+let shotCooldownTimer = 0;
+
+// --- Raycasting & Mouse ---
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let cursorWorld = new THREE.Vector3();
+const groundPlaneRay = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+
+// --- Input ---
 document.addEventListener('keydown', (e) => {
   keys[e.key.toLowerCase()] = true;
   if (e.key === ' ') {
@@ -198,18 +185,19 @@ renderer.domElement.addEventListener('click', (event) => {
   }
 });
 
-// --- Explosion Creation ---
+// --- Explosion ---
 function createExplosion(position) {
   explosions.push(new Explosion(position, scene, world));
 }
 
-// --- Game Logic Functions ---
+// --- Cooldown Bar ---
 function updateCooldownBar(progress) {
   const cooldownBar = document.querySelector('#cooldown-bar .circle');
-  const offset = 100 - progress * 100; // Calculate stroke-dashoffset
+  const offset = 100 - progress * 100;
   cooldownBar.style.strokeDashoffset = offset;
 }
 
+// --- Active Shots Cleanup ---
 function updateActiveShots() {
   const currentTime = clock.elapsedTime;
   for (let i = activeShots.length - 1; i >= 0; i--) {
@@ -228,6 +216,7 @@ function animate() {
   cameraManager.update();
   requestAnimationFrame(animate);
   const deltaTime = clock.getDelta();
+  const elapsedTime = clock.elapsedTime;
 
   world.step(1 / 60, deltaTime, 3);
 
@@ -256,7 +245,7 @@ function animate() {
   }
 
   renderer.render(scene, camera);
-  renderer.setClearColor(0x1e1e1e); // Set a darker background color for better contrast
+  renderer.setClearColor(0x1e1e1e);
 }
 
 // --- Window Resize ---
