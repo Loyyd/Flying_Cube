@@ -166,7 +166,7 @@ renderer.domElement.addEventListener('click', (event) => {
 
     setTimeout(() => {
       // Use Player's method to create the red circle
-      const shotCircle = player.createShotRangeCircle(scene, intersectPoint, SHOT_RADIUS, SHOT_ACTIVE_COLOR);
+      const shotCircle = player.createShotRangeCircle(scene, intersectPoint, SHOT_ACTIVE_COLOR);
 
       activeShots.push({
         mesh: shotCircle,
@@ -180,7 +180,7 @@ renderer.domElement.addEventListener('click', (event) => {
 
 // --- Explosion ---
 function createExplosion(position) {
-  explosions.push(new Explosion(position, scene, world));
+  explosions.push(new Explosion(position, scene, world, SHOT_RADIUS));
 }
 
 // --- Cooldown Bar ---
@@ -226,6 +226,18 @@ function animate() {
     lastEnemySpawn = elapsedTime;
   }
   enemies.forEach(enemy => enemy.update(deltaTime));
+
+  // --- Enemy hit detection with active shots ---
+  for (const shot of activeShots) {
+    for (const enemy of enemies) {
+      if (!enemy.isRigid) {
+        const dist = enemy.mesh.position.distanceTo(shot.position);
+        if (dist <= SHOT_RADIUS) {
+          enemy.hitByShot();
+        }
+      }
+    }
+  }
 
   if (shotCooldownTimer > 0) {
     shotCooldownTimer -= deltaTime;

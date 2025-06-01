@@ -8,7 +8,7 @@ const MAX_TRAIL_LENGTH = 8;
 // Toggle options
 const ENABLE_FIRE = false;
 const ENABLE_SPARK = true;
-const ENABLE_SMOKE = false;
+const ENABLE_SMOKE = true;
 
 // Particle counts
 const FIRE_PARTICLE_COUNT = 12;
@@ -27,6 +27,13 @@ const FIRE_VELOCITY_MULTIPLIER = 0.95;
 const SPARK_SIZE_RANGE = { min: 1.0, max: 2.0 };
 const SPARK_LIFETIME_RANGE = { min: 0.3, max: 0.6 };
 
+// Particle size multipliers (change these to scale all particles)
+export const PARTICLE_SIZE_MULTIPLIER = {
+  smoke: 0.0,
+  fire: 0.0,
+  spark: 0.0
+};
+
 // Helper: Random float in range
 function randomRange(a, b) {
   return Math.random() * (b - a) + a;
@@ -42,7 +49,7 @@ class ExplosionParticle {
     switch (type) {
       case "smoke":
         this.color = new THREE.Color(0x444444).lerp(new THREE.Color(0xAAAAAA), Math.random());
-        this.size = randomRange(0.8, 1.7);
+        //this.size = randomRange(0.8, 1.7) * PARTICLE_SIZE_MULTIPLIER.smoke;
         this.lifetime = randomRange(0.8, 1.2);
         this.velocity = new THREE.Vector3(
           randomRange(-0.5, 0.5), randomRange(1.2, 2.2), randomRange(-0.5, 0.5)
@@ -51,7 +58,7 @@ class ExplosionParticle {
         break;
       case "fire":
         this.color = new THREE.Color().setHSL(randomRange(0.03, 0.09), 1, randomRange(0.48, 0.57)); // orange/yellow/red
-        this.size = randomRange(0.5, 1.1);
+        //this.size = randomRange(0.5, 1.1) * PARTICLE_SIZE_MULTIPLIER.fire;
         this.lifetime = randomRange(0.3, 0.6);
         this.velocity = new THREE.Vector3(
           randomRange(-2, 2), randomRange(3, 5), randomRange(-2, 2)
@@ -60,7 +67,7 @@ class ExplosionParticle {
         break;
       case "spark":
         this.color = new THREE.Color(0xffee88).lerp(new THREE.Color(0xffdd33), Math.random());
-        this.size = randomRange(SPARK_SIZE_RANGE.min, SPARK_SIZE_RANGE.max);
+        //this.size = randomRange(SPARK_SIZE_RANGE.min, SPARK_SIZE_RANGE.max) * PARTICLE_SIZE_MULTIPLIER.spark;
         this.lifetime = randomRange(SPARK_LIFETIME_RANGE.min, SPARK_LIFETIME_RANGE.max);
         this.velocity = new THREE.Vector3(
           randomRange(-4, 4), randomRange(3, 8), randomRange(-4, 4)
@@ -113,11 +120,17 @@ class ExplosionParticle {
 }
 
 export class Explosion {
-  constructor(position, scene, world) {
+  constructor(position, scene, world, radius = 2) {
     this.position = position.clone();
     this.scene = scene;
-    this.world = world; // CANNON.js world
+    this.world = world;
     this.particles = [];
+    this.radius = radius;
+
+    // --- Make spark count scale with radius, but only spark size is increased ---
+    const sparkCount = Math.round(20 * (this.radius / 2)); // Default: 20 at radius=2
+    const sparkSizeMin = 1.0 * (this.radius / 2);
+    const sparkSizeMax = 2.0 * (this.radius / 2);
 
     // Emit fire
     if (ENABLE_FIRE) {
@@ -129,10 +142,12 @@ export class Explosion {
       }
     }
 
-    // Emit sparks
+    // Emit sparks (only size scaled)
     if (ENABLE_SPARK) {
       for (let i = 0; i < SPARK_PARTICLE_COUNT; i++) {
         let p = new ExplosionParticle("spark", this.position);
+        // Scale spark size for this explosion
+        p.size = randomRange(sparkSizeMin, sparkSizeMax);
         p.mesh = this.makeSprite(p.color, p.size, p.opacity, "spark");
         scene.add(p.mesh);
         this.particles.push(p);
@@ -157,8 +172,9 @@ export class Explosion {
   }
 
   applyImpulseToRigidBodies() {
-    const explosionForce = 3; // Strength of the explosion
-    const explosionRadius = 3; // Radius of the explosion effect
+    // Explosion force and radius scale with this.radius
+    const explosionForce = 3 * this.radius; // Strength of the explosion
+    const explosionRadius = this.radius;    // Radius of the explosion effect
 
     this.world.bodies.forEach(body => {
       if (body.position) {
@@ -180,16 +196,17 @@ export class Explosion {
   }
 
   makeSprite(color, size, opacity, type) {
-    // Use a circle for all, but could use textures for more realism!
+    // Scale the sprite size with explosion radius
+    let scaledSize = size * (this.radius / 2); // Default radius=2, so scale=1 if radius=2
     let mat = new THREE.MeshBasicMaterial({
       color: color,
       transparent: true,
       opacity: opacity,
       depthWrite: false
     });
-    let geo = new THREE.SphereGeometry(size, 8, 8);
+    let geo = new THREE.SphereGeometry(scaledSize, 8, 8);
     if (type === "spark") {
-      geo = new THREE.SphereGeometry(size * 0.42, 6, 6);
+      geo = new THREE.SphereGeometry(scaledSize * 0.42, 6, 6);
     }
     let mesh = new THREE.Mesh(geo, mat);
     mesh.position.copy(this.position);

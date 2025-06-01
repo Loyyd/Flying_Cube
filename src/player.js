@@ -8,7 +8,7 @@ const ROTATION_SPEED = 5.0; // Adjust this value to control rotation speed
 
 const SHOT_RANGE = 10;
 const SHOT_RADIUS = 2;
-const SHOT_EFFECT_DURATION_S = 2.0;
+const SHOT_EFFECT_DURATION_S = 1.01;
 const SHOT_COOLDOWN_S = 0.5;
 const SHOT_ACTIVE_COLOR = 0xff0000;
 const EXPLOSION_DELAY_S = 0.3;
@@ -267,8 +267,8 @@ class Player extends THREE.Mesh {
      * Creates and adds a red circle to the scene at the given position.
      * Returns the mesh for later removal.
      */
-    createShotRangeCircle(scene, position, radius, color = 0xff0000) {
-        const circleGeometry = new THREE.CircleGeometry(radius, 32);
+    createShotRangeCircle(scene, position, color = 0xff0000) {
+        const circleGeometry = new THREE.CircleGeometry(SHOT_RADIUS, 32);
         const circleMaterial = new THREE.MeshBasicMaterial({
             color: color,
             transparent: true,

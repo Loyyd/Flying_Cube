@@ -3,6 +3,7 @@ import * as CANNON from 'cannon-es';
 
 const ENEMY_RADIUS = 0.5;
 const ENEMY_SPEED = 8.0; // Higher = more aggressive following
+const DARK_RED = 0x660000;
 
 class Enemy {
   constructor(scene, world, player) {
@@ -30,9 +31,16 @@ class Enemy {
 
     // Sync mesh to body
     this.mesh.position.copy(this.body.position);
+
+    this.isRigid = false;
   }
 
   update(deltaTime) {
+    if (this.isRigid) {
+      // Only sync mesh to body if rigid
+      this.mesh.position.copy(this.body.position);
+      return;
+    }
     // Move towards player (apply force)
     const target = new CANNON.Vec3(
       this.player.position.x,
@@ -50,6 +58,21 @@ class Enemy {
 
     // Sync mesh to body
     this.mesh.position.copy(this.body.position);
+  }
+
+  hitByShot() {
+    if (this.isRigid) return;
+    // Change color to dark red
+    if (this.mesh.material) {
+      this.mesh.material.color.setHex(DARK_RED);
+    }
+    // Make body dynamic (full rigidbody)
+    this.isRigid = true;
+    this.body.type = CANNON.Body.DYNAMIC;
+    this.body.mass = 1;
+    this.body.updateMassProperties();
+    // Optionally, give a little upward impulse for effect
+    this.body.velocity.y = 4;
   }
 
   dispose() {
