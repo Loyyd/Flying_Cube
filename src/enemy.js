@@ -1,13 +1,14 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { SHOT_RANGE } from './player.js';
-
-const ENEMY_RADIUS = 0.5;
-const ENEMY_SPEED = 1.0;
-const ENEMY_WANDER_SPEED = 1;
-const DARK_RED = 0x660000;
-const CHASE_RADIUS = 6; // Distance at which enemy starts chasing player
-const WANDER_CHANGE_INTERVAL = 2.5; // seconds
+import {
+  ENEMY_RADIUS,
+  ENEMY_SPEED,
+  ENEMY_WANDER_SPEED,
+  ENEMY_DARK_RED as DARK_RED,
+  ENEMY_CHASE_RADIUS as CHASE_RADIUS,
+  ENEMY_WANDER_CHANGE_INTERVAL as WANDER_CHANGE_INTERVAL
+} from './settings.js';
 
 class Enemy {
   constructor(scene, world, player) {

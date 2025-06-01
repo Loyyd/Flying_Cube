@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { Obstacle } from './obstacle.js';
-
-export const OBSTACLE1_COLOR = "#00FF00"; // Red
-export const OBSTACLE2_COLOR = "#8fce00"; // Blue
-export const NUM_RANDOM_OBSTACLES = 50;
+import {
+  OBSTACLE1_COLOR,
+  OBSTACLE2_COLOR,
+  NUM_RANDOM_OBSTACLES
+} from './settings.js';
 
 export class ObstacleManager {
   constructor(scene, world, defaultMaterial, gridSize) {

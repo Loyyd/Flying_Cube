@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
-
-export const OBSTACLE_WALL_COLOR = 50549;
-export const OBSTACLE_RANDOM_COLOR = 50549;
-export const NUM_RANDOM_OBSTACLES = 50;
+import {
+  OBSTACLE_WALL_COLOR,
+  OBSTACLE_RANDOM_COLOR,
+  NUM_RANDOM_OBSTACLES
+} from './settings.js';
 
 export class Obstacle {
   constructor(x, y, z, geometry, material, isStatic, scene, world, defaultMaterial) {

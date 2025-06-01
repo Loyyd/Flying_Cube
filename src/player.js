@@ -1,12 +1,25 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as CANNON from 'cannon-es';
+import {
+    PLAYER_SPEED,
+    PLAYER_ROTATION_SPEED,
+    SHOT_RANGE,
+    SHOT_RADIUS,
+    SHOT_EFFECT_DURATION_S,
+    SHOT_COOLDOWN_S,
+    SHOT_ACTIVE_COLOR,
+    EXPLOSION_DELAY_S,
+    RING_THICKNESS,
+    RING_OPACITY,
+    CURSOR_INDICATOR_RADIUS,
+    CURSOR_INDICATOR_SEGMENTS,
+    CURSOR_INDICATOR_OPACITY
+} from './settings.js';
 
 // SETTINGS
-const PLAYER_SPEED = 5.0;
-const ROTATION_SPEED = 5.0; // Adjust this value to control rotation speed
 
-const SHOT_RANGE = 10;
+/* const SHOT_RANGE = 10;
 const SHOT_RADIUS = 1;
 const SHOT_EFFECT_DURATION_S = 0.01;
 const SHOT_COOLDOWN_S = 2;
@@ -17,7 +30,7 @@ const RING_THICKNESS = 0.15;
 const RING_OPACITY = 0.4;
 const CURSOR_INDICATOR_RADIUS = 0.5;
 const CURSOR_INDICATOR_SEGMENTS = 16;
-const CURSOR_INDICATOR_OPACITY = 0.8;
+const CURSOR_INDICATOR_OPACITY = 0.8; */
 
 
 
@@ -299,7 +312,7 @@ class Player extends THREE.Mesh {
         this.updateActivationRangeRing();
 
         this.targetQuaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), this.targetRotationY);
-        this.quaternion.slerp(this.targetQuaternion, deltaTime * ROTATION_SPEED);
+        this.quaternion.slerp(this.targetQuaternion, deltaTime * PLAYER_ROTATION_SPEED);
 
         if (this.isCombatMode) {
             this.createCursorIndicator(scene, cursorWorld);
@@ -308,9 +321,16 @@ class Player extends THREE.Mesh {
         } else {
             this.removeCursorIndicator(scene);
         }
-        this.quaternion.slerp(this.targetQuaternion, deltaTime * ROTATION_SPEED); // Use slerp for smooth quaternion interpolation
+        this.quaternion.slerp(this.targetQuaternion, deltaTime * PLAYER_ROTATION_SPEED); // Use slerp for smooth quaternion interpolation
     }
 }
 
 export default Player;
-export{SHOT_RANGE, SHOT_RADIUS, SHOT_EFFECT_DURATION_S, SHOT_COOLDOWN_S, SHOT_ACTIVE_COLOR, EXPLOSION_DELAY_S};
+export {
+    SHOT_RANGE,
+    SHOT_RADIUS,
+    SHOT_EFFECT_DURATION_S,
+    SHOT_COOLDOWN_S,
+    SHOT_ACTIVE_COLOR,
+    EXPLOSION_DELAY_S
+};

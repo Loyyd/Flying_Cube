@@ -1,7 +1,19 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import Player from './player.js';
-import { SHOT_RANGE, SHOT_RADIUS as INITIAL_SHOT_RADIUS, SHOT_EFFECT_DURATION_S, SHOT_COOLDOWN_S, SHOT_ACTIVE_COLOR, EXPLOSION_DELAY_S } from './player.js';
+import {
+  SHOT_RANGE,
+  SHOT_RADIUS as INITIAL_SHOT_RADIUS,
+  SHOT_EFFECT_DURATION_S,
+  SHOT_COOLDOWN_S,
+  SHOT_ACTIVE_COLOR,
+  EXPLOSION_DELAY_S,
+  GRID_SIZE,
+  PLAYER_SIZE,
+  SCENE_BACKGROUND_COLOR,
+  SHOT_RADIUS_MIN,
+  SHOT_RADIUS_MAX
+} from './settings.js';
 //import Player, { SHOT_RADIUS as DEFAULT_SHOT_RADIUS } from './player.js';
 import { Explosion } from './explosion.js';
 import CameraManager from './camera.js';
@@ -9,14 +21,9 @@ import { ObstacleManager } from './obstacleManager.js';
 import EnemySpawner from './enemySpawner.js';
 
 // --- Game Constants ---
-const GRID_SIZE = 50;
-const PLAYER_SIZE = 1;
-const SCENE_BACKGROUND_COLOR = 0x282c34;
 
 // --- Shot Radius UI State ---
 let SHOT_RADIUS = INITIAL_SHOT_RADIUS;
-const SHOT_RADIUS_MIN = 1;
-const SHOT_RADIUS_MAX = 5;
 
 // --- Shot Radius UI Elements ---
 const shotRadiusSquaresContainer = document.getElementById('shot-radius-squares');

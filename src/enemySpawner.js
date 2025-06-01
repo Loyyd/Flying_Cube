@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import Enemy from './enemy.js';
-
-const BOX_SIZE = 1;
-const SPAWN_RADIUS = 2;
-const NUM_BOXES = 2;
-const ENEMY_SPAWN_INTERVAL_MS = 3000;
+import {
+  ENEMY_BOX_SIZE as BOX_SIZE,
+  ENEMY_SPAWN_RADIUS as SPAWN_RADIUS,
+  ENEMY_NUM_BOXES as NUM_BOXES,
+  ENEMY_SPAWN_INTERVAL_MS
+} from './settings.js';
 
 class EnemySpawner {
   constructor(scene, world, player) {
