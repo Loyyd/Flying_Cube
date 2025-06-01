@@ -128,3 +128,19 @@ canvas {
   font-weight: bold;
   letter-spacing: 1px;
 }
+
+#cooldown-level-bar {
+  /* already styled inline in HTML, but add here for consistency */
+  width: 80px;
+  height: 12px;
+  background: #222;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+#cooldown-level-bar_inner {
+  height: 100%;
+  background: #f9b233;
+  width: 100%;
+  transition: width 0.2s;
+}

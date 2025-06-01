@@ -38,6 +38,20 @@
       </span>
     </div>
     <div id="shot-radius-squares" style="margin-top: 6px;"></div>
+    <!-- Cooldown Upgrade UI -->
+    <div style="display: flex; align-items: center; justify-content: center; margin-top: 14px;">
+      <button id="decrease-cooldown-btn" title="Decrease Cooldown">+</button>
+      <span id="decrease-cooldown-info" style="display: flex; align-items: center; margin-left: 10px;">
+        <span style="margin-left:6px;">Decrease Cooldown</span>
+        <span style="color:#f9b233; font-weight:bold; margin-left:8px; display: flex; align-items: center;">
+          <svg width="14" height="14" style="vertical-align:middle; margin-right:2px;" viewBox="0 0 20 20" fill="currentColor"><circle cx="10" cy="10" r="9" stroke="#f9b233" stroke-width="2" fill="none"/><text x="10" y="15" text-anchor="middle" font-size="12" fill="#f9b233" font-family="Arial" font-weight="bold">S</text></svg>
+          20
+        </span>
+      </span>
+    </div>
+    <div id="cooldown-level-bar" style="margin-top: 6px; width: 80px; height: 12px; background: #222; border-radius: 6px; overflow: hidden;">
+      <div id="cooldown-level-bar-inner" style="height: 100%; background: #f9b233; width: 100%; transition: width 0.2s;"></div>
+    </div>
   </div>
   <div id="game-over-message">GAME OVER</div>
   <script type="module" src="src/main.js"></script>

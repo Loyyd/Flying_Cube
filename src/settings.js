@@ -1,8 +1,3 @@
-// Score
-export const GameState = {
-    score: 150
-};
-
 // Player settings
 export const PLAYER_SPEED = 5.0;
 export const PLAYER_ROTATION_SPEED = 5.0;

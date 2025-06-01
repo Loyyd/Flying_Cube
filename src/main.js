@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import Player from './player.js';
 import {
-  GameState,
+  //GameState,
   SHOT_RANGE,
   SHOT_RADIUS as INITIAL_SHOT_RADIUS,
   SHOT_EFFECT_DURATION_S,
@@ -21,9 +21,15 @@ import { Explosion } from './explosion.js';
 import CameraManager from './camera.js';
 import { ObstacleManager } from './obstacleManager.js';
 import EnemySpawner from './enemySpawner.js';
+import { UI, GameState } from './uiManager.js';
 
 // --- Shot Radius UI State ---
 let SHOT_RADIUS = INITIAL_SHOT_RADIUS;
+
+// --- Cooldown Upgrade State ---
+let cooldownUpgradeLevel = 0;
+const COOLDOWN_UPGRADE_MAX = 4; // 4 upgrades = 20% * 4 = 80% reduction
+const COOLDOWN_REDUCTION_PER_LEVEL = 0.2;
 
 // --- Score State ---
 const scoreValueElem = document.getElementById('score-value');
@@ -35,6 +41,23 @@ updateScoreUI();
 // --- Shot Radius UI Elements ---
 const shotRadiusSquaresContainer = document.getElementById('shot-radius-squares');
 const increaseRadiusBtn = document.getElementById('increase-radius-btn');
+
+// --- Cooldown Upgrade UI Elements ---
+const decreaseCooldownBtn = document.getElementById('decrease-cooldown-btn');
+const cooldownLevelBarInner = document.getElementById('cooldown-level-bar-inner');
+
+function getCurrentCooldown() {
+  // Minimum cooldown is 20% of original (after 4 upgrades)
+  const reduction = Math.min(cooldownUpgradeLevel * COOLDOWN_REDUCTION_PER_LEVEL, 0.8);
+  return SHOT_COOLDOWN_S * (1 - reduction);
+}
+
+function updateCooldownBarUI() {
+  // Bar width: 100% at 0 upgrades, 20% at max upgrades
+  const percent = 1 - Math.min(cooldownUpgradeLevel * COOLDOWN_REDUCTION_PER_LEVEL, 0.8);
+  cooldownLevelBarInner.style.width = (percent * 100) + '%';
+}
+updateCooldownBarUI();
 
 function updateShotRadiusUI() {
   shotRadiusSquaresContainer.innerHTML = '';
@@ -51,6 +74,16 @@ increaseRadiusBtn.addEventListener('click', () => {
     SHOT_RADIUS = SHOT_RADIUS + 0.2;
     GameState.score -= 20;
     updateShotRadiusUI();
+    updateScoreUI();
+  }
+});
+
+// --- Cooldown Upgrade Button Logic ---
+decreaseCooldownBtn.addEventListener('click', () => {
+  if (cooldownUpgradeLevel < COOLDOWN_UPGRADE_MAX && GameState.score >= 20) {
+    cooldownUpgradeLevel++;
+    GameState.score -= 20;
+    updateCooldownBarUI();
     updateScoreUI();
   }
 });
@@ -190,14 +223,14 @@ renderer.domElement.addEventListener('click', (event) => {
     if (distanceToTarget > SHOT_RANGE) return;
 
     canShoot = false;
-    shotCooldownTimer = SHOT_COOLDOWN_S;
-    updateCooldownBar(0);
+    shotCooldownTimer = UI.getCurrentCooldown(SHOT_COOLDOWN_S);
+    UI.updateCooldownCircle(0);
 
     player.lastShotDirection.subVectors(intersectPoint, player.position).normalize();
     player.lastShotDirection.y = 0;
 
     setTimeout(() => {
-      const shotCircle = player.createShotRangeCircle(scene, intersectPoint, SHOT_ACTIVE_COLOR, SHOT_RADIUS);
+      const shotCircle = player.createShotRangeCircle(scene, intersectPoint, SHOT_ACTIVE_COLOR, UI.getShotRadius());
 
       activeShots.push({
         mesh: shotCircle,
@@ -212,13 +245,6 @@ renderer.domElement.addEventListener('click', (event) => {
 // --- Explosion ---
 function createExplosion(position) {
   explosions.push(new Explosion(position, scene, world, SHOT_RADIUS));
-}
-
-// --- Cooldown Bar ---
-function updateCooldownBar(progress) {
-  const cooldownBar = document.querySelector('#cooldown-bar .circle');
-  const offset = 100 - progress * 100;
-  cooldownBar.style.strokeDashoffset = offset;
 }
 
 // --- Active Shots Cleanup ---
@@ -257,8 +283,7 @@ function animate() {
         const dist = enemy.mesh.position.distanceTo(shot.position);
         if (dist <= SHOT_RADIUS) {
           enemy.hitByShot();
-          GameState.score++;
-          updateScoreUI();
+          UI.addScore(1);
         }
       }
     }
@@ -266,11 +291,11 @@ function animate() {
 
   if (shotCooldownTimer > 0) {
     shotCooldownTimer -= deltaTime;
-    updateCooldownBar(1 - shotCooldownTimer / SHOT_COOLDOWN_S);
+    UI.updateCooldownCircle(1 - shotCooldownTimer / UI.getCurrentCooldown(SHOT_COOLDOWN_S));
     if (shotCooldownTimer <= 0) {
       canShoot = true;
       shotCooldownTimer = 0;
-      updateCooldownBar(1);
+      UI.updateCooldownCircle(1);
     }
   }
 
