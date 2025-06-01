@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
+import { SHOT_RANGE } from './player.js';
 
 const ENEMY_RADIUS = 0.5;
-const ENEMY_SPEED = 8.0; // Higher = more aggressive following
+const ENEMY_SPEED = 1.0; // Higher = more aggressive following
 const DARK_RED = 0x660000;
 
 class Enemy {
@@ -21,11 +22,24 @@ class Enemy {
     const shape = new CANNON.Sphere(ENEMY_RADIUS);
     this.body = new CANNON.Body({ mass: 1 });
     this.body.addShape(shape);
-    // Spawn at random position
+
+    // Spawn at random position, but not within SHOT_RANGE of player
+    let spawnPos;
+    do {
+      spawnPos = {
+        x: Math.random() * 40 - 20,
+        z: Math.random() * 40 - 20
+      };
+    } while (
+      Math.hypot(
+        spawnPos.x - this.player.position.x,
+        spawnPos.z - this.player.position.z
+      ) < SHOT_RANGE
+    );
     this.body.position.set(
-      Math.random() * 40 - 20,
+      spawnPos.x,
       ENEMY_RADIUS,
-      Math.random() * 40 - 20
+      spawnPos.z
     );
     this.world.addBody(this.body);
 
@@ -41,7 +55,7 @@ class Enemy {
       this.mesh.position.copy(this.body.position);
       return;
     }
-    // Move towards player (apply force)
+    // Move towards player (set velocity directly)
     const target = new CANNON.Vec3(
       this.player.position.x,
       this.body.position.y,
@@ -51,9 +65,13 @@ class Enemy {
     direction.y = 0; // Stay on ground
     if (direction.length() > 0.01) {
       direction.normalize();
-      direction.scale(ENEMY_SPEED, direction);
-      this.body.velocity.x += direction.x * deltaTime;
-      this.body.velocity.z += direction.z * deltaTime;
+      // Set velocity directly for linear movement
+      this.body.velocity.x = direction.x * ENEMY_SPEED;
+      this.body.velocity.z = direction.z * ENEMY_SPEED;
+    } else {
+      // Stop if very close to player
+      this.body.velocity.x = 0;
+      this.body.velocity.z = 0;
     }
 
     // Sync mesh to body

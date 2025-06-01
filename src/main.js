@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import Player from './player.js';
-import { SHOT_RANGE, SHOT_RADIUS, SHOT_EFFECT_DURATION_S, SHOT_COOLDOWN_S, SHOT_ACTIVE_COLOR, EXPLOSION_DELAY_S } from './player.js';
+import { SHOT_RANGE, SHOT_RADIUS as INITIAL_SHOT_RADIUS, SHOT_EFFECT_DURATION_S, SHOT_COOLDOWN_S, SHOT_ACTIVE_COLOR, EXPLOSION_DELAY_S } from './player.js';
+//import Player, { SHOT_RADIUS as DEFAULT_SHOT_RADIUS } from './player.js';
 import { Explosion } from './explosion.js';
 import CameraManager from './camera.js';
 import { ObstacleManager } from './obstacleManager.js';
@@ -11,6 +12,32 @@ import Enemy from './enemy.js'; // <-- Add this import
 const GRID_SIZE = 50;
 const PLAYER_SIZE = 1;
 const SCENE_BACKGROUND_COLOR = 0x282c34;
+
+// --- Shot Radius UI State ---
+let SHOT_RADIUS = INITIAL_SHOT_RADIUS;
+const SHOT_RADIUS_MIN = 1;
+const SHOT_RADIUS_MAX = 5;
+
+// --- Shot Radius UI Elements ---
+const shotRadiusSquaresContainer = document.getElementById('shot-radius-squares');
+const increaseRadiusBtn = document.getElementById('increase-radius-btn');
+
+function updateShotRadiusUI() {
+  shotRadiusSquaresContainer.innerHTML = '';
+  for (let i = 1; i <= SHOT_RADIUS_MAX; i++) {
+    const square = document.createElement('div');
+    square.className = 'shot-radius-square' + (i <= SHOT_RADIUS ? ' filled' : '');
+    shotRadiusSquaresContainer.appendChild(square);
+  }
+}
+updateShotRadiusUI();
+
+increaseRadiusBtn.addEventListener('click', () => {
+  if (SHOT_RADIUS < SHOT_RADIUS_MAX) {
+    SHOT_RADIUS++;
+    updateShotRadiusUI();
+  }
+});
 
 // --- Scene & Renderer ---
 const scene = new THREE.Scene();
@@ -166,7 +193,7 @@ renderer.domElement.addEventListener('click', (event) => {
 
     setTimeout(() => {
       // Use Player's method to create the red circle
-      const shotCircle = player.createShotRangeCircle(scene, intersectPoint, SHOT_ACTIVE_COLOR);
+      const shotCircle = player.createShotRangeCircle(scene, intersectPoint, SHOT_ACTIVE_COLOR, SHOT_RADIUS);
 
       activeShots.push({
         mesh: shotCircle,
