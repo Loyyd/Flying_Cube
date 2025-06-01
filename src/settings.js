@@ -6,7 +6,7 @@ export const PLAYER_ROTATION_SPEED = 5.0;
 export const SHOT_RANGE = 10;
 export const SHOT_RADIUS = 1;
 export const SHOT_EFFECT_DURATION_S = 0.01;
-export const SHOT_COOLDOWN_S = 2;
+export const SHOT_COOLDOWN_S = 1;
 export const SHOT_ACTIVE_COLOR = 0xff0000;
 export const EXPLOSION_DELAY_S = 0.3;
 
@@ -29,7 +29,7 @@ export const ENEMY_RADIUS = 0.5;
 export const ENEMY_SPEED = 1.0;
 export const ENEMY_WANDER_SPEED = 1;
 export const ENEMY_DARK_RED = 0x660000;
-export const ENEMY_CHASE_RADIUS = 6;
+export const ENEMY_CHASE_RADIUS = 10;
 export const ENEMY_WANDER_CHANGE_INTERVAL = 2.5;
 
 // EnemySpawner settings

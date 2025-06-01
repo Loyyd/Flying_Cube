@@ -25,6 +25,14 @@ import EnemySpawner from './enemySpawner.js';
 // --- Shot Radius UI State ---
 let SHOT_RADIUS = INITIAL_SHOT_RADIUS;
 
+// --- Score State ---
+let score = 0;
+const scoreValueElem = document.getElementById('score-value');
+function updateScoreUI() {
+  scoreValueElem.textContent = score;
+}
+updateScoreUI();
+
 // --- Shot Radius UI Elements ---
 const shotRadiusSquaresContainer = document.getElementById('shot-radius-squares');
 const increaseRadiusBtn = document.getElementById('increase-radius-btn');
@@ -40,9 +48,11 @@ function updateShotRadiusUI() {
 updateShotRadiusUI();
 
 increaseRadiusBtn.addEventListener('click', () => {
-  if (SHOT_RADIUS < SHOT_RADIUS_MAX) {
+  if (SHOT_RADIUS < SHOT_RADIUS_MAX && score >= 20) {
     SHOT_RADIUS++;
+    score -= 20;
     updateShotRadiusUI();
+    updateScoreUI();
   }
 });
 
@@ -263,6 +273,8 @@ function animate() {
         const dist = enemy.mesh.position.distanceTo(shot.position);
         if (dist <= SHOT_RADIUS) {
           enemy.hitByShot();
+          score++;
+          updateScoreUI();
         }
       }
     }

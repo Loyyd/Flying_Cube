@@ -110,7 +110,7 @@ class Enemy {
     this.body.mass = 1;
     this.body.updateMassProperties();
     // Optionally, give a little upward impulse for effect
-    this.body.velocity.y = 4;
+    //this.body.velocity.y = 4;
   }
 
   dispose() {
