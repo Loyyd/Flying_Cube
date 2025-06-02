@@ -209,28 +209,34 @@ canvas {
 /* Cube placement button */
 #place-cube-btn {
     position: absolute;
-    bottom: 20px;
-    left: 20px;
-    background: rgba(30, 30, 30, 0.85);
-    color: #4444ff;
-    padding: 10px 20px;
-    border: 2px solid #4444ff;
-    border-radius: 8px;
+    right: 5px;
+    top: 185px;
+    background: #2a2a2a;
+    color: #f9b233;
+    padding: 8px 20px;
+    border: 2px solid #f9b233;
+    border-radius: 6px;
     cursor: pointer;
     font-weight: bold;
+    font-size: 14px;
     transition: all 0.3s ease;
     user-select: none;
-    z-index: 100; /* Add this line */
+    z-index: 50;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 #place-cube-btn:hover {
-    background: #4444ff;
-    color: white;
-    box-shadow: 0 0 15px rgba(68, 68, 255, 0.4);
+    background: #f9b233;
+    color: #2a2a2a;
+    box-shadow: 0 0 15px rgba(249, 178, 51, 0.4);
 }
 
 #place-cube-btn.active {
-    background: #4444ff;
-    color: white;
+    background: #f9b233;
+    color: #2a2a2a;
     animation: pulse 1.5s infinite;
+}
+
+#place-cube-btn:active {
+    /* transform: translateX(-50%) scale(0.95); */
 }

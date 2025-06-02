@@ -19,7 +19,7 @@ import CameraManager from './core/camera.js';
 import { ObstacleManager } from './world/obstacleManager.js';
 import EnemySpawner from './world/enemySpawner.js';
 import { UI } from './ui/uiManager.js';
-import { CubeManager } from './world/cubeManager.js';
+import { Turret } from './world/turret.js';
 
 
 // --- Scene & Renderer ---
@@ -139,11 +139,11 @@ document.addEventListener('keydown', (e) => {
     }
   }
   if (e.key.toLowerCase() === 'q') {
-    if (cubeManager.isDragging) {
-      cubeManager.cancelDragging();
+    if (turret.isDragging) {
+      turret.cancelDragging();
       placeCubeBtn.classList.remove('active');
     } else {
-      if (cubeManager.startDragging()) {
+      if (turret.startDragging()) {
         placeCubeBtn.classList.add('active');
       }
     }
@@ -164,22 +164,22 @@ renderer.domElement.addEventListener('mousemove', (event) => {
 });
 
 // --- Cube Manager ---
-const cubeManager = new CubeManager(scene, world);
+const turret = new Turret(scene, world);
 const placeCubeBtn = document.getElementById('place-cube-btn');
 
 placeCubeBtn.addEventListener('click', () => {
-    if (cubeManager.isDragging) {
-        cubeManager.cancelDragging();
+    if (turret.isDragging) {
+        turret.cancelDragging();
         placeCubeBtn.classList.remove('active');
     } else {
-        cubeManager.startDragging();
+        turret.startDragging();
         placeCubeBtn.classList.add('active');
     }
 });
 
 renderer.domElement.addEventListener('click', (event) => {
-    if (cubeManager.isDragging) {
-        cubeManager.placeCube();
+    if (turret.isDragging) {
+        turret.placeCube();
         placeCubeBtn.classList.remove('active');
         return;
     }
@@ -242,7 +242,8 @@ function animate() {
   world.step(1 / 60, deltaTime, 3);
   player.update(deltaTime, keys, cursorWorld, scene, playerBody);
   enemySpawner.update(deltaTime);
-  cubeManager.updateDragPosition(raycaster);
+  turret.updateDragPosition(raycaster);
+  turret.update(deltaTime, enemySpawner.enemies);  // Add this line
   
   // Enemy hit detection with active shots
   for (const shot of activeShots) {
