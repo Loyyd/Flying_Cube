@@ -3,7 +3,7 @@ import * as CANNON from 'cannon-es';
 import Player from './world/player.js';
 import {
   SHOT_RANGE,
-  SHOT_RADIUS as INITIAL_SHOT_RADIUS,
+  SHOT_RADIUS,
   SHOT_EFFECT_DURATION_S,
   SHOT_COOLDOWN_S,
   SHOT_ACTIVE_COLOR,
@@ -11,8 +11,6 @@ import {
   GRID_SIZE,
   PLAYER_SIZE,
   SCENE_BACKGROUND_COLOR,
-  SHOT_RADIUS_MIN,
-  SHOT_RADIUS_MAX,
   defaultMaterial,
   defaultContactMaterial
 } from './core/settings.js';
@@ -23,14 +21,10 @@ import EnemySpawner from './world/enemySpawner.js';
 import { UI, GameState } from './ui/uiManager.js';
 
 
-// --- Shot Radius UI State ---
-let SHOT_RADIUS = INITIAL_SHOT_RADIUS;
-
 // --- Scene & Renderer ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(SCENE_BACKGROUND_COLOR);
 scene.fog = new THREE.FogExp2(SCENE_BACKGROUND_COLOR, 0.01);
-
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
@@ -46,14 +40,8 @@ const world = new CANNON.World();
 world.gravity.set(0, -9.82, 0);
 world.broadphase = new CANNON.SAPBroadphase(world);
 world.allowSleep = true;
-
 world.addContactMaterial(defaultContactMaterial);
 world.defaultContactMaterial = defaultContactMaterial;
-
-// --- Cooldown Upgrade State ---Add commentMore actions
-let cooldownUpgradeLevel = 0;
-const COOLDOWN_UPGRADE_MAX = 4; // 4 upgrades = 20% * 4 = 80% reduction
-const COOLDOWN_REDUCTION_PER_LEVEL = 0.2;
 
 // --- Score State ---
 const scoreValueElem = document.getElementById('score-value');
@@ -61,20 +49,6 @@ function updateScoreUI() {
   scoreValueElem.textContent = GameState.score;
 }
 updateScoreUI();
-
-// --- Shot Radius UI Elements ---
-const shotRadiusSquaresContainer = document.getElementById('shot-radius-squares');
-const increaseRadiusBtn = document.getElementById('increase-radius-btn');
-
-// --- Cooldown Upgrade UI Elements ---
-const decreaseCooldownBtn = document.getElementById('decrease-cooldown-btn');
-const cooldownLevelBarInner = document.getElementById('cooldown-level-bar-inner');
-
-function getCurrentCooldown() {
-  // Minimum cooldown is 20% of original (after 4 upgrades)
-  const reduction = Math.min(cooldownUpgradeLevel * COOLDOWN_REDUCTION_PER_LEVEL, 0.8);
-  return SHOT_COOLDOWN_S * (1 - reduction);
-}
 
 // --- Lighting ---
 scene.add(new THREE.AmbientLight(0xffffff, 0.4));

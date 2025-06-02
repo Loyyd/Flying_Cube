@@ -7,8 +7,8 @@ const TEMPLATE_PATHS = {
 // Upgrade Constants
 const RadiusUpgradeCost = 200;
 const CooldownUpgradeCost = 200;
-const MAX_COOLDOWN_LEVEL = 4;
-const COOLDOWN_REDUCTION_PER_LEVEL = 0.2;
+const MAX_COOLDOWN_LEVEL = 5;
+const COOLDOWN_REDUCTION_PER_LEVEL = 0.19;
 const BASE_SHOT_RADIUS = 1;
 const RADIUS_INCREASE_STEP = 0.5;
 const MAX_COOLDOWN_REDUCTION = 1;
