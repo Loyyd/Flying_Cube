@@ -69,8 +69,7 @@ export class UIManager {
             // Store references
             this.upgradeComponents.set(type, {
                 button: el.querySelector('.upgrade-btn'),
-                progress: el.querySelector('.upgrade-progress'),
-                type: el.dataset.progressType
+                type: el.dataset.type
             });
         });
 
@@ -79,9 +78,7 @@ export class UIManager {
         const cooldownComponent = this.upgradeComponents.get('cooldown');
         
         this.increaseRadiusBtn = radiusComponent.button;
-        this.shotRadiusSquares = radiusComponent.progress;
         this.decreaseCooldownBtn = cooldownComponent.button;
-        this.cooldownLevelBar = cooldownComponent.progress;
     }
 
     setupEventListeners() {
@@ -107,28 +104,10 @@ export class UIManager {
 
     updateAllUI() {
         this.updateScoreUI();
-        this.updateShotRadiusUI();
-        this.updateCooldownBarUI();
     }
 
     updateScoreUI() {
         this.scoreElement.textContent = this.score;
-    }
-
-    updateShotRadiusUI() {
-        const progress = this.upgradeComponents.get('radius').progress;
-        progress.innerHTML = '';
-        for (let i = 1; i <= 2; i += 0.2) {
-            const square = document.createElement('div');
-            square.className = 'shot-radius-square' + (i <= this.shotRadius ? ' filled' : '');
-            progress.appendChild(square);
-        }
-    }
-
-    updateCooldownBarUI() {
-        const progress = this.upgradeComponents.get('cooldown').progress;
-        const percent = 1 - Math.min(this.cooldownLevel * this.COOLDOWN_REDUCTION_PER_LEVEL, 0.8);
-        progress.style.width = (percent * 100) + '%';
     }
 
     updateCooldownCircle(progress) {
