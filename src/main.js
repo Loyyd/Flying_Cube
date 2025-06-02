@@ -19,6 +19,7 @@ import CameraManager from './core/camera.js';
 import { ObstacleManager } from './world/obstacleManager.js';
 import EnemySpawner from './world/enemySpawner.js';
 import { UI } from './ui/uiManager.js';
+import { CubeManager } from './world/cubeManager.js';
 
 
 // --- Scene & Renderer ---
@@ -146,35 +147,54 @@ renderer.domElement.addEventListener('mousemove', (event) => {
   }
 });
 
-renderer.domElement.addEventListener('click', (event) => {
-  if (!activeMode || !canShoot) return;
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-  const intersectPoint = new THREE.Vector3();
-  if (raycaster.ray.intersectPlane(groundPlaneRay, intersectPoint)) {
-    const distanceToTarget = intersectPoint.distanceTo(player.position);
-    if (distanceToTarget > SHOT_RANGE) return;
+// --- Cube Manager ---
+const cubeManager = new CubeManager(scene, world);
+const placeCubeBtn = document.getElementById('place-cube-btn');
 
-    canShoot = false;
-    shotCooldownTimer = UI.getCurrentCooldown(SHOT_COOLDOWN_S);
-    UI.updateCooldownCircle(0);
-
-    player.lastShotDirection.subVectors(intersectPoint, player.position).normalize();
-    player.lastShotDirection.y = 0;
-
-    setTimeout(() => {
-      const shotCircle = player.createShotRangeCircle(scene, intersectPoint, SHOT_ACTIVE_COLOR, UI.getShotRadius());
-
-      activeShots.push({
-        mesh: shotCircle,
-        endTime: clock.elapsedTime + SHOT_EFFECT_DURATION_S,
-        position: shotCircle.position.clone()
-      });
-      createExplosion(intersectPoint);
-    }, EXPLOSION_DELAY_S * 1000);
-  }
+placeCubeBtn.addEventListener('click', () => {
+    if (cubeManager.isDragging) {
+        cubeManager.cancelDragging();
+        placeCubeBtn.classList.remove('active');
+    } else {
+        cubeManager.startDragging();
+        placeCubeBtn.classList.add('active');
+    }
 });
+
+renderer.domElement.addEventListener('click', (event) => {
+    if (cubeManager.isDragging) {
+        cubeManager.placeCube();
+        placeCubeBtn.classList.remove('active');
+        return;
+    }
+    if (!activeMode || !canShoot) return;
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const intersectPoint = new THREE.Vector3();
+    if (raycaster.ray.intersectPlane(groundPlaneRay, intersectPoint)) {
+      const distanceToTarget = intersectPoint.distanceTo(player.position);
+      if (distanceToTarget > SHOT_RANGE) return;
+
+      canShoot = false;
+      shotCooldownTimer = UI.getCurrentCooldown(SHOT_COOLDOWN_S);
+      UI.updateCooldownCircle(0);
+
+      player.lastShotDirection.subVectors(intersectPoint, player.position).normalize();
+      player.lastShotDirection.y = 0;
+
+      setTimeout(() => {
+        const shotCircle = player.createShotRangeCircle(scene, intersectPoint, SHOT_ACTIVE_COLOR, UI.getShotRadius());
+
+        activeShots.push({
+          mesh: shotCircle,
+          endTime: clock.elapsedTime + SHOT_EFFECT_DURATION_S,
+          position: shotCircle.position.clone()
+        });
+        createExplosion(intersectPoint);
+      }, EXPLOSION_DELAY_S * 1000);
+    }
+  });
 
 // --- Explosion ---
 function createExplosion(position) {
@@ -206,6 +226,7 @@ function animate() {
   world.step(1 / 60, deltaTime, 3);
   player.update(deltaTime, keys, cursorWorld, scene, playerBody);
   enemySpawner.update(deltaTime);
+  cubeManager.updateDragPosition(raycaster);
   
   // Enemy hit detection with active shots
   for (const shot of activeShots) {
@@ -214,7 +235,7 @@ function animate() {
         const dist = enemy.mesh.position.distanceTo(shot.position);
         if (dist <= GameState.SHOT_RADIUS) {
           enemy.hitByShot();
-          UI.addScore(1);
+          UI.addScore(10);
         }
       }
     }

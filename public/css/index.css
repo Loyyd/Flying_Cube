@@ -205,3 +205,32 @@ canvas {
   animation: pulse 1.5s infinite;
   box-shadow: 0 0 20px rgba(249, 178, 51, 0.6);
 }
+
+/* Cube placement button */
+#place-cube-btn {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(30, 30, 30, 0.85);
+    color: #4444ff;
+    padding: 10px 20px;
+    border: 2px solid #4444ff;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    user-select: none;
+    z-index: 100; /* Add this line */
+}
+
+#place-cube-btn:hover {
+    background: #4444ff;
+    color: white;
+    box-shadow: 0 0 15px rgba(68, 68, 255, 0.4);
+}
+
+#place-cube-btn.active {
+    background: #4444ff;
+    color: white;
+    animation: pulse 1.5s infinite;
+}
