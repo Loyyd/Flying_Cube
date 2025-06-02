@@ -6,8 +6,9 @@ import { UI } from '../ui/uiManager.js';
 import { Bullet } from './bullet.js';
 
 const CUBE_COST = 50;
-const TURRET_RANGE = 8;
-const TURRET_COOLDOWN = 1.5;
+const TURRET_RANGE = 5;
+const TURRET_COOLDOWN = 0.8;
+const RING_THICKNESS = 0.15;
 
 export class Turret {
     constructor(scene, world) {
@@ -19,17 +20,17 @@ export class Turret {
         
         this.cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
         this.cubeMaterial = new THREE.MeshStandardMaterial({
-            color: 0x4444ff,
+            color: 0x9292D0,
             transparent: true,
             opacity: 0.6
         });
         this.solidCubeMaterial = new THREE.MeshStandardMaterial({
-            color: 0x4444ff
+            color: 0x9292D0
         });
         this.placedTurrets = [];
-        this.rangeGeometry = new THREE.CircleGeometry(TURRET_RANGE, 32);
+        this.rangeGeometry = new THREE.RingGeometry(TURRET_RANGE - RING_THICKNESS, TURRET_RANGE, 64);
         this.rangeMaterial = new THREE.MeshBasicMaterial({
-            color: 0x4444ff,
+            color: 0x9292D0,
             transparent: true,
             opacity: 0.2,
             side: THREE.DoubleSide

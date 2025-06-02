@@ -2,13 +2,13 @@ import * as THREE from 'three';
 
 export class Bullet {
     constructor(position, direction, scene) {
-        this.speed = 15;
-        this.maxDistance = 20;
+        this.speed = 3;
+        this.maxDistance = 5;
         this.distanceTraveled = 0;
         this.direction = direction.normalize();
         
         // Create bullet mesh
-        const geometry = new THREE.SphereGeometry(0.1, 8, 8);
+        const geometry = new THREE.SphereGeometry(0.2, 8, 8);
         const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.copy(position);
