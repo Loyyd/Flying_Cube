@@ -68,9 +68,10 @@ canvas {
 /* Shot radius UI */
 #shot-radius-ui {
   position: absolute;
-  top: 30px;
-  right: 30px;
-  width: 80px;
+  top: 25px;
+  right: 25px;
+  width: 100px;
+  height: 200px;
   background: rgba(30, 30, 30, 0.85);
   padding: 12px 10px 10px;
   border-radius: 12px;
@@ -81,32 +82,18 @@ canvas {
   align-items: center;
 }
 
-.shot-radius-square {
-  width: 14px;
-  height: 14px;
-  background: #222;
-  border: 2px solid #646cff;
-  border-radius: 4px;
-  box-sizing: border-box;
-  transition: background 0.2s, border-color 0.2s;
-}
 
-.shot-radius-square.filled {
-  background: #646cff;
-  border-color: #fff;
-  box-shadow: 0 0 6px rgba(100, 108, 255, 0.533);
-}
+
+
 
 /* Upgrade system */
 .upgrade-component {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  min-width: 10px;
-  padding: 10px;
-  min-width: 175px;
-  margin: 8px;
-  padding: 20px;
+  min-width: 150px;
+  margin: 2px;
+  padding: 5px;
   background: rgba(0, 0, 0, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
@@ -176,11 +163,13 @@ canvas {
 
 .upgrade-info {
   display: flex;
-  align-items: center;
+  align-items: left;
   margin-left: 10px;
+  gap: 5px;
   color: #fff;
   font-size: 10px;
   font-family: Arial, sans-serif;
+  flex-direction: column;
 }
 
 /* Animations */
