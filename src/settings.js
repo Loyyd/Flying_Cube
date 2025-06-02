@@ -35,7 +35,7 @@ export const ENEMY_WANDER_CHANGE_INTERVAL = 1;
 // EnemySpawner settings
 export const ENEMY_BOX_SIZE = 1;
 export const ENEMY_SPAWN_RADIUS = 2;
-export const ENEMY_NUM_BOXES = 2;
+export const ENEMY_NUM_BOXES = 4;
 export const ENEMY_SPAWN_INTERVAL_MS = 3000;
 
 // Camera settings
