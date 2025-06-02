@@ -45,7 +45,7 @@ canvas {
   stroke-dashoffset: 100;
   transition: stroke-dashoffset 0.01s linear;
 }
-
+/* 
 #game-over-message {
   position: absolute;
   top: 50%;
@@ -56,7 +56,7 @@ canvas {
   text-align: center;
   text-shadow: 2px 2px 4px black;
   display: none; /* Hidden by default */
-}
+
 
 #shot-radius-ui {
   position: absolute;
@@ -77,11 +77,11 @@ canvas {
   width: 32px;
   height: 32px;
   margin-bottom: 10px;
-  border-radius: 8px;
-  border: 1px solid #444;
+  border-radius: 10px;
+  border: 3px solid #444;
   background: #222;
   color: #fff;
-  font-size: 1.5em;
+  font-size: 1em;
   font-weight: bold;
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s;
@@ -93,14 +93,14 @@ canvas {
 
 #shot-radius-squares {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   gap: 6px;
   margin-top: 2px;
 }
 
 .shot-radius-square {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   border-radius: 4px;
   border: 2px solid #646cff;
   background: #222;
@@ -115,14 +115,14 @@ canvas {
 
 #score-container {
   position: absolute;
-  top: 18px;
+  top: 10px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 2em;
+  font-size: 0.7em;
   color: #fff;
   background: rgba(30, 30, 30, 0.85);
-  border-radius: 10px;
-  padding: 8px 28px;
+  border-radius: 5px;
+  padding: 4px 15px;
   box-shadow: 0 2px 8px #0008;
   z-index: 20;
   font-weight: bold;

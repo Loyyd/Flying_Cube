@@ -132,7 +132,7 @@ export class Explosion {
   applyImpulseToRigidBodies(force, radius) {
     this.world.bodies.forEach(body => {
       if (body.position) {
-        const bodyPosition = new CANNON.Vec3(body.position.x, body.position.y-0.1, body.position.z);
+        const bodyPosition = new CANNON.Vec3(body.position.x, body.position.y, body.position.z);
         const explosionPosition = new CANNON.Vec3(this.position.x, this.position.y, this.position.z);
 
         const distance = bodyPosition.distanceTo(explosionPosition);

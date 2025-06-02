@@ -33,7 +33,7 @@ export class UIManager {
             const upgradeComponentTemplate = upgradeDoc.querySelector('#upgrade-component-template');
 
             // Load main template
-            const response = await fetch('src/templates/shot-radius-ui.html');
+            const response = await fetch('src/templates/upgrades.html');
             const mainTemplate = await response.text();
             const doc = new DOMParser().parseFromString(mainTemplate, 'text/html');
             const template = doc.querySelector('#shot-radius-ui-template');
