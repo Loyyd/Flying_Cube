@@ -18,7 +18,7 @@ import {
   defaultContactMaterial // <-- import here
 } from './settings.js';
 import { Explosion } from './explosion.js';
-import CameraManager from './camera.js';
+import CameraManager from './core/camera.js';
 import { ObstacleManager } from './obstacleManager.js';
 import EnemySpawner from './enemySpawner.js';
 import { UI, GameState } from './uiManager.js';
