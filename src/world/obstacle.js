@@ -5,7 +5,7 @@ import {
   OBSTACLE_RANDOM_COLOR,
   NUM_RANDOM_OBSTACLES,
   defaultMaterial
-} from './settings.js';
+} from '../core/settings.js';
 
 export class Obstacle {
   constructor(x, y, z, geometry, material, isStatic, scene, world) {

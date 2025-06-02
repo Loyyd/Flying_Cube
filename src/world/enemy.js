@@ -9,7 +9,7 @@ import {
   ENEMY_CHASE_RADIUS as CHASE_RADIUS,
   ENEMY_WANDER_CHANGE_INTERVAL as WANDER_CHANGE_INTERVAL,
   defaultMaterial
-} from './settings.js';
+} from '../core/settings.js';
 
 class Enemy {
   constructor(scene, world, player) {

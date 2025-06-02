@@ -4,7 +4,7 @@ import {
   OBSTACLE1_COLOR,
   OBSTACLE2_COLOR,
   NUM_RANDOM_OBSTACLES
-} from './settings.js';
+} from '../core/settings.js';
 
 export class ObstacleManager {
   constructor(scene, world, gridSize) {

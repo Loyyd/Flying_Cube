@@ -5,7 +5,7 @@ import {
   ENEMY_SPAWN_RADIUS as SPAWN_RADIUS,
   ENEMY_NUM_BOXES as NUM_BOXES,
   ENEMY_SPAWN_INTERVAL_MS
-} from './settings.js';
+} from '../core/settings.js';
 
 class EnemySpawner {
   constructor(scene, world, player) {

@@ -4,7 +4,7 @@ import {
   CAMERA_OFFSET_Y,
   CAMERA_OFFSET_Z,
   CAMERA_LERP_FACTOR
-} from '../settings.js';
+} from './settings.js';
 
 /**
  * Manages the camera's position and target to smoothly follow a player.

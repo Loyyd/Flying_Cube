@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
-import Player from './player.js';
+import Player from './world/player.js';
 import {
   //GameState,
   SHOT_RANGE,
@@ -16,12 +16,12 @@ import {
   SHOT_RADIUS_MAX,
   defaultMaterial,
   defaultContactMaterial // <-- import here
-} from './settings.js';
-import { Explosion } from './explosion.js';
+} from './core/settings.js';
+import { Explosion } from './world/explosion.js';
 import CameraManager from './core/camera.js';
-import { ObstacleManager } from './obstacleManager.js';
-import EnemySpawner from './enemySpawner.js';
-import { UI, GameState } from './uiManager.js';
+import { ObstacleManager } from './world/obstacleManager.js';
+import EnemySpawner from './world/enemySpawner.js';
+import { UI, GameState } from './ui/uiManager.js';
 
 // --- Shot Radius UI State ---
 let SHOT_RADIUS = INITIAL_SHOT_RADIUS;

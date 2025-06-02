@@ -27,13 +27,13 @@ export class UIManager {
     async loadTemplate() {
         try {
             // Load upgrade component template
-            const upgradeResponse = await fetch('src/templates/upgrade-component.html');
+            const upgradeResponse = await fetch('public/templates/upgrade-component.html');
             const upgradeTemplate = await upgradeResponse.text();
             const upgradeDoc = new DOMParser().parseFromString(upgradeTemplate, 'text/html');
             const upgradeComponentTemplate = upgradeDoc.querySelector('#upgrade-component-template');
 
             // Load main template
-            const response = await fetch('src/templates/upgrades.html');
+            const response = await fetch('public/templates/upgrades.html');
             const mainTemplate = await response.text();
             const doc = new DOMParser().parseFromString(mainTemplate, 'text/html');
             const template = doc.querySelector('#shot-radius-ui-template');

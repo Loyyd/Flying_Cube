@@ -15,7 +15,7 @@ import {
     CURSOR_INDICATOR_RADIUS,
     CURSOR_INDICATOR_SEGMENTS,
     CURSOR_INDICATOR_OPACITY
-} from './settings.js';
+} from '../core/settings.js';
 
 // SETTINGS
 
