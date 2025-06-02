@@ -64,7 +64,6 @@ directionalLight.shadow.camera.right = GRID_SIZE / 1.5;
 directionalLight.shadow.camera.top = GRID_SIZE / 1.5;
 directionalLight.shadow.camera.bottom = -GRID_SIZE / 1.5;
 scene.add(directionalLight);
-
 const pointLight = new THREE.PointLight(0xffaa33, 0.8, 50);
 pointLight.position.set(0, GRID_SIZE * 0.6, 0);
 pointLight.castShadow = true;

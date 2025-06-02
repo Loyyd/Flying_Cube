@@ -19,7 +19,6 @@ class Enemy {
 
     // Visual
     const geometry = new THREE.BoxGeometry(ENEMY_RADIUS * 2, ENEMY_RADIUS * 2, ENEMY_RADIUS * 2);
-    // Use MeshStandardMaterial like obstacles, but purple color
     const material = new THREE.MeshStandardMaterial({ color: 0x800080, roughness: 0.8, metalness: 0.2 });
     this.mesh = new THREE.Mesh(geometry, material);
     this.scene.add(this.mesh);
@@ -146,7 +145,7 @@ class Enemy {
     }
     // Make body dynamic (full rigidbody)
     this.isRigid = true;
-    this.body.mass = 1; // Set a small mass to allow movement
+    this.body.mass = 1;
     this.body.type = CANNON.Body.DYNAMIC;
     this.body.updateMassProperties();
 

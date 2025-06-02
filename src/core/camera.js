@@ -6,9 +6,6 @@ import {
   CAMERA_LERP_FACTOR
 } from './settings.js';
 
-/**
- * Manages the camera's position and target to smoothly follow a player.
- */
 class CameraManager {
     /**
      * @param {THREE.Camera} camera - The Three.js camera to manage.
@@ -19,11 +16,6 @@ class CameraManager {
         this.player = player;
         this.offset = new THREE.Vector3(CAMERA_OFFSET_X, CAMERA_OFFSET_Y, CAMERA_OFFSET_Z);
     }
-
-    /**
-     * Updates the camera's position and target.
-     * This method should be called in your animation loop.
-     */
     update() {
         // Calculate the target camera position based on the player's position and the offset
         const targetCameraPosition = new THREE.Vector3();
@@ -36,5 +28,4 @@ class CameraManager {
         this.camera.lookAt(this.player.position);
     }
 }
-
 export default CameraManager;

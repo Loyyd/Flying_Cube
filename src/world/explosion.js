@@ -102,8 +102,8 @@ export class Explosion {
   constructor(position, scene, world, radius) {
     this.position = position.clone();
     this.scene = scene;
-    this.world = world; // CANNON.js world
-    this.radius = radius// || explosionRadius; // Default to predefined radius
+    this.world = world;
+    this.radius = radius
     this.particles = [];
 
     // Emit fire
@@ -138,12 +138,10 @@ export class Explosion {
         const distance = bodyPosition.distanceTo(explosionPosition);
 
         if (distance < radius) {
-          const forceDirection = bodyPosition.vsub(explosionPosition); // Subtract positions
-          forceDirection.normalize(); // Normalize the direction vector
-          const forceMagnitude = force * (1 - distance / radius); // Decrease force with distance
-          const impulse = forceDirection.scale(forceMagnitude); // Scale the normalized vector
-
-          // Apply impulse at center of mass to avoid spinning
+          const forceDirection = bodyPosition.vsub(explosionPosition);
+          forceDirection.normalize();
+          const forceMagnitude = force * (1 - distance / radius);
+          const impulse = forceDirection.scale(forceMagnitude);
           body.applyImpulse(impulse, body.position);
         }
       }
@@ -151,7 +149,6 @@ export class Explosion {
   }
 
   makeSprite(color, size, opacity, type) {
-    // Use a circle for all, but could use textures for more realism!
     let mat = new THREE.MeshBasicMaterial({
       color: color,
       transparent: true,
@@ -183,7 +180,7 @@ export class Explosion {
       }
     }
 
-    // Update trails for sparks (fire/smoke can have faint trails too if desired)
+    // Update trails for sparks
     for (let t of this.trails) {
       this.scene.remove(t.line);
     }

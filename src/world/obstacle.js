@@ -14,8 +14,6 @@ export class Obstacle {
     this.mesh.castShadow = true;
     this.mesh.receiveShadow = true;
     scene.add(this.mesh);
-
-    // Create Cannon.js body for the obstacle
     const halfExtents = new CANNON.Vec3(
       geometry.parameters.width / 2,
       geometry.parameters.height / 2,

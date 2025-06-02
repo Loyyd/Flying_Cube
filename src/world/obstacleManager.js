@@ -16,7 +16,6 @@ export class ObstacleManager {
 
   createWallObstacles() {
     const wallMaterial = new THREE.MeshStandardMaterial({
-      //color: OBSTACLE_WALL_COLOR,
       roughness: 0.8,
       metalness: 0.1
     });
@@ -60,7 +59,7 @@ export class ObstacleManager {
       if (Math.abs(x) < 3 && Math.abs(z) < 3) continue;
 
       // Determine obstacle type based on spawn probability
-      const isObstacle1 = Math.random() < 0.2; // 20% chance for Obstacle1
+      const isObstacle1 = Math.random() < 0.2;
       const material = isObstacle1 ? obstacle1Material : obstacle2Material;
 
       this.obstacles.push(

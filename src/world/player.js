@@ -17,23 +17,6 @@ import {
     CURSOR_INDICATOR_OPACITY
 } from '../core/settings.js';
 
-// SETTINGS
-
-/* const SHOT_RANGE = 10;
-const SHOT_RADIUS = 1;
-const SHOT_EFFECT_DURATION_S = 0.01;
-const SHOT_COOLDOWN_S = 2;
-const SHOT_ACTIVE_COLOR = 0xff0000;
-const EXPLOSION_DELAY_S = 0.3;
-
-const RING_THICKNESS = 0.15;
-const RING_OPACITY = 0.4;
-const CURSOR_INDICATOR_RADIUS = 0.5;
-const CURSOR_INDICATOR_SEGMENTS = 16;
-const CURSOR_INDICATOR_OPACITY = 0.8; */
-
-
-
 class Player extends THREE.Mesh {
     constructor(initialPosition = new THREE.Vector3(0, 0, 0)) {
         super();
@@ -47,9 +30,9 @@ class Player extends THREE.Mesh {
         this.mixer = null;
         this.siegeAction = null;
         this.siegeREAction = null;
-        this.siegeDriveAction = null; // Keep "SiegeDrive" reference
+        this.siegeDriveAction = null;
         this.canMove = true;
-        this.targetRotationY = this.rotation.y; // Store the target rotation
+        this.targetRotationY = this.rotation.y;
         this.rotorBone = null;
         this.targetQuaternion = new THREE.Quaternion();
     }
@@ -60,7 +43,7 @@ class Player extends THREE.Mesh {
         loader.load('/assets/tank.glb', (gltf) => {
             const tank = gltf.scene;
             tank.scale.set(0.3, 0.3, 0.3);
-            this.add(tank); // Make the tank the player's child
+            this.add(tank);
 
             this.mixer = new THREE.AnimationMixer(tank);
             const animations = gltf.animations;
@@ -73,7 +56,6 @@ class Player extends THREE.Mesh {
                 this.siegeDriveAction.clampWhenFinished = false;
                 this.siegeDriveAction.enable = true;
             }
-
             [this.siegeAction, this.siegeREAction].forEach(action => {
                 action.setLoop(THREE.LoopOnce);
                 action.clampWhenFinished = true;
@@ -94,7 +76,7 @@ class Player extends THREE.Mesh {
         if (this.isCombatMode || !this.canMove) {
             playerBody.velocity.set(0, playerBody.velocity.y, 0);
             if (this.siegeDriveAction) {
-                this.siegeDriveAction.paused = true; // Pause "SiegeDrive" animation
+                this.siegeDriveAction.paused = true;
             }
             return;
         }
@@ -110,22 +92,15 @@ class Player extends THREE.Mesh {
 
         if (moveVector.lengthSq() > 0) {
             moveVector.normalize();
-
-            // Wake up the player body if it is asleep
             if (playerBody.sleepState === CANNON.Body.SLEEPING) {
                 playerBody.wakeUp();
             }
-            
             playerBody.velocity.set(
                 moveVector.x * this.speed,
                 playerBody.velocity.y,
                 moveVector.z * this.speed
             );
-
-            // Calculate the target rotation
             let targetRotationY = Math.atan2(moveVector.x, moveVector.z);
-
-            // Normalize angles to ensure shortest rotation
             let currentRotationY = this.rotation.y % (Math.PI * 2);
             let diff = targetRotationY - currentRotationY;
             if (diff > Math.PI) {
@@ -136,15 +111,15 @@ class Player extends THREE.Mesh {
             this.targetRotationY = currentRotationY + diff;
 
             if (this.siegeDriveAction) {
-                this.siegeDriveAction.paused = false; // Resume "SiegeDrive" animation
+                this.siegeDriveAction.paused = false;
                 if (!this.siegeDriveAction.isRunning()) {
-                    this.siegeDriveAction.reset().play(); // Play "SiegeDrive" animation
+                    this.siegeDriveAction.reset().play();
                 }
             }
         } else {
             playerBody.velocity.set(0, playerBody.velocity.y, 0);
             if (this.siegeDriveAction) {
-                this.siegeDriveAction.paused = true; // Pause "SiegeDrive" animation
+                this.siegeDriveAction.paused = true;
             }
         }
 }
@@ -169,13 +144,12 @@ class Player extends THREE.Mesh {
         }
         this.activationRangeRing.position.set(this.position.x, 0.02, this.position.z);
 
-        // Put player body to sleep and clear velocity when entering combat mode
         if (playerBody) {
             playerBody.sleep();
             playerBody.velocity.set(0, 0, 0);
         }
 
-        if (this.siegeDriveAction) this.siegeDriveAction.stop(); // Stop "SiegeDrive" animation
+        if (this.siegeDriveAction) this.siegeDriveAction.stop();
     }
 
     /**
@@ -190,7 +164,7 @@ class Player extends THREE.Mesh {
         }
 
         if (this.siegeREAction && this.mixer) {
-            this.canMove = false; // Disable movement immediately
+            this.canMove = false;
 
             const onAnimationFinished = (event) => {
                 if (event.action === this.siegeREAction) {
@@ -199,7 +173,7 @@ class Player extends THREE.Mesh {
                         playerBody.wakeUp();
                     }
                     if (this.siegeDriveAction) {
-                        this.siegeDriveAction.reset().play(); // Properly reset and play "SiegeDrive" animation
+                        this.siegeDriveAction.reset().play();
                         this.siegeDriveAction.setEffectiveWeight(1.0);
                     }
                     this.mixer.removeEventListener('finished', onAnimationFinished);
@@ -210,7 +184,6 @@ class Player extends THREE.Mesh {
             this.siegeREAction.reset().play();
             this.siegeREAction.setEffectiveWeight(1.0);
         } else {
-            // If no exit animation or mixer, allow movement immediately
             this.canMove = true;
             if (playerBody) {
                 playerBody.wakeUp();
