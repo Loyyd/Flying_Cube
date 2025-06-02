@@ -102,9 +102,9 @@ canvas {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 200px;
+  min-width: 10px;
   margin: 8px 0;
-  padding: 12px;
+  padding: 10px;
   background: rgba(0, 0, 0, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
@@ -134,13 +134,12 @@ canvas {
 }
 
 .upgrade-btn {
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   background: #2a2a2a;
   color: #f9b233;
   border: 2px solid #f9b233;
   border-radius: 6px;
-  font-size: 20px;
   font-weight: bold;
   cursor: pointer;
   position: relative;
@@ -178,7 +177,7 @@ canvas {
   align-items: center;
   margin-left: 10px;
   color: #fff;
-  font-size: 5px;
+  font-size: 10px;
   font-family: Arial, sans-serif;
 }
 
