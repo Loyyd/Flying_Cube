@@ -1,27 +1,27 @@
-// Constants
+import { GameState } from '../core/settings.js';
 const TEMPLATE_PATHS = {
     UPGRADE_COMPONENT: 'public/templates/upgrade-component.html',
     UPGRADES: 'public/templates/upgrades.html'
 };
 
-// Upgrade Constants
+//SHOTRADIUS
 const RadiusUpgradeCost = 200;
+const base_shot_radius = GameState.SHOT_RADIUS;
+const RADIUS_INCREASE_STEP = 0.5;
+const SHOT_RADIUS_MAX = 3.5;
+
+//COOLDOWN
 const CooldownUpgradeCost = 200;
 const MAX_COOLDOWN_LEVEL = 5;
 const COOLDOWN_REDUCTION_PER_LEVEL = 0.19;
-const BASE_SHOT_RADIUS = 1;
-const RADIUS_INCREASE_STEP = 0.5;
 const MAX_COOLDOWN_REDUCTION = 1;
 
-// Game State
-export const GameState = {
-    score: 2000
-};
+
 
 export class UIManager {
     constructor() {
         this.score = GameState.score;
-        this.shotRadius = BASE_SHOT_RADIUS;
+        this.shotRadius = base_shot_radius;
         this.cooldownLevel = 0;
         this.COOLDOWN_UPGRADE_MAX = MAX_COOLDOWN_LEVEL;
         this.COOLDOWN_REDUCTION_PER_LEVEL = COOLDOWN_REDUCTION_PER_LEVEL;
@@ -120,11 +120,12 @@ export class UIManager {
     }
 
     handleRadiusUpgrade() {
-        if (this.shotRadius < 2 && this.score >= RadiusUpgradeCost) {
+        if (this.shotRadius < SHOT_RADIUS_MAX && this.score >= RadiusUpgradeCost) {
             this.shotRadius += RADIUS_INCREASE_STEP;
             this.score -= RadiusUpgradeCost;
-            this.updateProgressSquares('radius', (this.shotRadius - BASE_SHOT_RADIUS) / RADIUS_INCREASE_STEP);
+            this.updateProgressSquares('radius', (this.shotRadius-1)*2);
             this.updateAllUI();
+            GameState.SHOT_RADIUS = this.shotRadius;
         }
     }
 

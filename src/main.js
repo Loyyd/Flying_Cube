@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import Player from './world/player.js';
 import {
+  GameState,
   SHOT_RANGE,
-  SHOT_RADIUS,
   SHOT_EFFECT_DURATION_S,
   SHOT_COOLDOWN_S,
   SHOT_ACTIVE_COLOR,
@@ -18,7 +18,7 @@ import { Explosion } from './world/explosion.js';
 import CameraManager from './core/camera.js';
 import { ObstacleManager } from './world/obstacleManager.js';
 import EnemySpawner from './world/enemySpawner.js';
-import { UI, GameState } from './ui/uiManager.js';
+import { UI } from './ui/uiManager.js';
 
 
 // --- Scene & Renderer ---
@@ -178,7 +178,7 @@ renderer.domElement.addEventListener('click', (event) => {
 
 // --- Explosion ---
 function createExplosion(position) {
-  explosions.push(new Explosion(position, scene, world, SHOT_RADIUS));
+  explosions.push(new Explosion(position, scene, world, GameState.SHOT_RADIUS));
 }
 
 // --- Active Shots Cleanup ---
@@ -212,7 +212,7 @@ function animate() {
     for (const enemy of enemySpawner.enemies) {
       if (!enemy.isRigid) {
         const dist = enemy.mesh.position.distanceTo(shot.position);
-        if (dist <= SHOT_RADIUS) {
+        if (dist <= GameState.SHOT_RADIUS) {
           enemy.hitByShot();
           UI.addScore(1);
         }

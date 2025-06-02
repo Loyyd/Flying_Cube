@@ -5,17 +5,17 @@ import {
     PLAYER_SPEED,
     PLAYER_ROTATION_SPEED,
     SHOT_RANGE,
-    SHOT_RADIUS,
     SHOT_EFFECT_DURATION_S,
     SHOT_COOLDOWN_S,
     SHOT_ACTIVE_COLOR,
     EXPLOSION_DELAY_S,
     RING_THICKNESS,
     RING_OPACITY,
-    CURSOR_INDICATOR_RADIUS,
     CURSOR_INDICATOR_SEGMENTS,
     CURSOR_INDICATOR_OPACITY
 } from '../core/settings.js';
+import { UI } from '../ui/uiManager.js';
+import { debug } from 'three/tsl';
 
 class Player extends THREE.Mesh {
     constructor(initialPosition = new THREE.Vector3(0, 0, 0)) {
@@ -207,8 +207,14 @@ class Player extends THREE.Mesh {
     }
 
     createCursorIndicator(scene, cursorWorld) {
-        if (!this.cursorIndicator) {
-            const indicatorGeo = new THREE.CircleGeometry(CURSOR_INDICATOR_RADIUS, CURSOR_INDICATOR_SEGMENTS);
+        const currentRadius = UI.getShotRadius();
+        // Recreate indicator if it doesn't exist or radius has changed
+        if (!this.cursorIndicator || this.cursorIndicator.geometry.parameters.radius !== currentRadius) {
+            if (this.cursorIndicator) {
+                scene.remove(this.cursorIndicator);
+                this.disposeMesh(this.cursorIndicator);
+            }
+            const indicatorGeo = new THREE.CircleGeometry(currentRadius, CURSOR_INDICATOR_SEGMENTS);
             const indicatorMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: CURSOR_INDICATOR_OPACITY });
             this.cursorIndicator = new THREE.Mesh(indicatorGeo, indicatorMat);
             this.cursorIndicator.rotation.x = -Math.PI / 2;
@@ -294,14 +300,12 @@ class Player extends THREE.Mesh {
         } else {
             this.removeCursorIndicator(scene);
         }
-        this.quaternion.slerp(this.targetQuaternion, deltaTime * PLAYER_ROTATION_SPEED); // Use slerp for smooth quaternion interpolation
     }
 }
 
 export default Player;
 export {
     SHOT_RANGE,
-    SHOT_RADIUS,
     SHOT_EFFECT_DURATION_S,
     SHOT_COOLDOWN_S,
     SHOT_ACTIVE_COLOR,
