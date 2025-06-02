@@ -19,6 +19,25 @@ export class UIManager {
         this.cooldownLevelBar = document.getElementById('cooldown-level-bar-inner');
         this.cooldownCircle = document.querySelector('#cooldown-bar .circle');
 
+        this.loadTemplate();
+    }
+
+    async loadTemplate() {
+        const response = await fetch('src/templates/shot-radius-ui.html');
+        const text = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'text/html');
+        const template = doc.querySelector('#shot-radius-ui-template');
+        const container = document.getElementById('shot-radius-ui-container');
+        container.appendChild(template.content.cloneNode(true));
+        
+        // Re-query elements after template is loaded
+        this.shotRadiusSquares = document.getElementById('shot-radius-squares');
+        this.increaseRadiusBtn = document.getElementById('increase-radius-btn');
+        this.decreaseCooldownBtn = document.getElementById('decrease-cooldown-btn');
+        this.cooldownLevelBar = document.getElementById('cooldown-level-bar-inner');
+        
+        // Setup event listeners after elements are available
         this.setupEventListeners();
         this.updateAllUI();
     }

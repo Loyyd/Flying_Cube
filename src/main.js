@@ -52,14 +52,14 @@ function getCurrentCooldown() {
   return SHOT_COOLDOWN_S * (1 - reduction);
 }
 
-function updateCooldownBarUI() {
+/* function updateCooldownBarUI() {
   // Bar width: 100% at 0 upgrades, 20% at max upgrades
   const percent = 1 - Math.min(cooldownUpgradeLevel * COOLDOWN_REDUCTION_PER_LEVEL, 0.8);
   cooldownLevelBarInner.style.width = (percent * 100) + '%';
-}
-updateCooldownBarUI();
+} */
+//UI.updateCooldownBarUI();
 
-function updateShotRadiusUI() {
+/* function updateShotRadiusUI() {
   shotRadiusSquaresContainer.innerHTML = '';
   for (let i = 1; i <= SHOT_RADIUS_MAX; i=i+0.2) {
     const square = document.createElement('div');
@@ -67,9 +67,9 @@ function updateShotRadiusUI() {
     shotRadiusSquaresContainer.appendChild(square);
   }
 }
-updateShotRadiusUI();
+updateShotRadiusUI(); */
 
-increaseRadiusBtn.addEventListener('click', () => {
+/* increaseRadiusBtn.addEventListener('click', () => {
   if (SHOT_RADIUS < SHOT_RADIUS_MAX && GameState.score >= 20) {
     SHOT_RADIUS = SHOT_RADIUS + 0.2;
     GameState.score -= 20;
@@ -86,7 +86,7 @@ decreaseCooldownBtn.addEventListener('click', () => {
     updateCooldownBarUI();
     updateScoreUI();
   }
-});
+}); */
 
 // --- Scene & Renderer ---
 const scene = new THREE.Scene();
