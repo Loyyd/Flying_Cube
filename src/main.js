@@ -20,6 +20,7 @@ import { Explosion } from './world/explosion.js';
 import CameraManager from './core/camera.js';
 import { ObstacleManager } from './world/obstacleManager.js';
 import EnemySpawner from './world/enemySpawner.js';
+import { UI, GameState } from './ui/uiManager.js';
 
 
 // --- Shot Radius UI State ---
@@ -48,6 +49,32 @@ world.allowSleep = true;
 
 world.addContactMaterial(defaultContactMaterial);
 world.defaultContactMaterial = defaultContactMaterial;
+
+// --- Cooldown Upgrade State ---Add commentMore actions
+let cooldownUpgradeLevel = 0;
+const COOLDOWN_UPGRADE_MAX = 4; // 4 upgrades = 20% * 4 = 80% reduction
+const COOLDOWN_REDUCTION_PER_LEVEL = 0.2;
+
+// --- Score State ---
+const scoreValueElem = document.getElementById('score-value');
+function updateScoreUI() {
+  scoreValueElem.textContent = GameState.score;
+}
+updateScoreUI();
+
+// --- Shot Radius UI Elements ---
+const shotRadiusSquaresContainer = document.getElementById('shot-radius-squares');
+const increaseRadiusBtn = document.getElementById('increase-radius-btn');
+
+// --- Cooldown Upgrade UI Elements ---
+const decreaseCooldownBtn = document.getElementById('decrease-cooldown-btn');
+const cooldownLevelBarInner = document.getElementById('cooldown-level-bar-inner');
+
+function getCurrentCooldown() {
+  // Minimum cooldown is 20% of original (after 4 upgrades)
+  const reduction = Math.min(cooldownUpgradeLevel * COOLDOWN_REDUCTION_PER_LEVEL, 0.8);
+  return SHOT_COOLDOWN_S * (1 - reduction);
+}
 
 // --- Lighting ---
 scene.add(new THREE.AmbientLight(0xffffff, 0.4));
