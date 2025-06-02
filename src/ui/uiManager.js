@@ -1,16 +1,30 @@
-// Score
+// Constants
+const TEMPLATE_PATHS = {
+    UPGRADE_COMPONENT: 'public/templates/upgrade-component.html',
+    UPGRADES: 'public/templates/upgrades.html'
+};
+
+// Upgrade Constants
+const RadiusUpgradeCost = 200;
+const CooldownUpgradeCost = 200;
+const MAX_COOLDOWN_LEVEL = 4;
+const COOLDOWN_REDUCTION_PER_LEVEL = 0.2;
+const BASE_SHOT_RADIUS = 1;
+const RADIUS_INCREASE_STEP = 0.5;
+const MAX_COOLDOWN_REDUCTION = 1;
+
+// Game State
 export const GameState = {
     score: 2000
 };
-const RadiusUpgradeCost = 200;
-const CooldownUpgradeCost = 200;
+
 export class UIManager {
     constructor() {
         this.score = GameState.score;
-        this.shotRadius = 1;
+        this.shotRadius = BASE_SHOT_RADIUS;
         this.cooldownLevel = 0;
-        this.COOLDOWN_UPGRADE_MAX = 4;
-        this.COOLDOWN_REDUCTION_PER_LEVEL = 0.2;
+        this.COOLDOWN_UPGRADE_MAX = MAX_COOLDOWN_LEVEL;
+        this.COOLDOWN_REDUCTION_PER_LEVEL = COOLDOWN_REDUCTION_PER_LEVEL;
 
         // UI Elements
         this.scoreElement = document.getElementById('score-value');
@@ -28,13 +42,13 @@ export class UIManager {
     async loadTemplate() {
         try {
             // Load upgrade component template
-            const upgradeResponse = await fetch('public/templates/upgrade-component.html');
+            const upgradeResponse = await fetch(TEMPLATE_PATHS.UPGRADE_COMPONENT);
             const upgradeTemplate = await upgradeResponse.text();
             const upgradeDoc = new DOMParser().parseFromString(upgradeTemplate, 'text/html');
             const upgradeComponentTemplate = upgradeDoc.querySelector('#upgrade-component-template');
 
             // Load main template
-            const response = await fetch('public/templates/upgrades.html');
+            const response = await fetch(TEMPLATE_PATHS.UPGRADES);
             const mainTemplate = await response.text();
             const doc = new DOMParser().parseFromString(mainTemplate, 'text/html');
             const template = doc.querySelector('#shot-radius-ui-template');
@@ -89,7 +103,7 @@ export class UIManager {
 
     handleRadiusUpgrade() {
         if (this.shotRadius < 2 && this.score >= RadiusUpgradeCost) {
-            this.shotRadius += 0.2;
+            this.shotRadius += RADIUS_INCREASE_STEP;
             this.score -= RadiusUpgradeCost;
             this.updateAllUI();
         }
@@ -117,7 +131,7 @@ export class UIManager {
     }
 
     getCurrentCooldown(baseCooldown) {
-        const reduction = Math.min(this.cooldownLevel * this.COOLDOWN_REDUCTION_PER_LEVEL, 0.8);
+        const reduction = Math.min(this.cooldownLevel * this.COOLDOWN_REDUCTION_PER_LEVEL, MAX_COOLDOWN_REDUCTION);
         return baseCooldown * (1 - reduction);
     }
 

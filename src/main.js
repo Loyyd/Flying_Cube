@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import Player from './world/player.js';
 import {
-  //GameState,
   SHOT_RANGE,
   SHOT_RADIUS as INITIAL_SHOT_RADIUS,
   SHOT_EFFECT_DURATION_S,
@@ -15,78 +14,16 @@ import {
   SHOT_RADIUS_MIN,
   SHOT_RADIUS_MAX,
   defaultMaterial,
-  defaultContactMaterial // <-- import here
+  defaultContactMaterial
 } from './core/settings.js';
 import { Explosion } from './world/explosion.js';
 import CameraManager from './core/camera.js';
 import { ObstacleManager } from './world/obstacleManager.js';
 import EnemySpawner from './world/enemySpawner.js';
-import { UI, GameState } from './ui/uiManager.js';
+
 
 // --- Shot Radius UI State ---
 let SHOT_RADIUS = INITIAL_SHOT_RADIUS;
-
-// --- Cooldown Upgrade State ---
-let cooldownUpgradeLevel = 0;
-const COOLDOWN_UPGRADE_MAX = 4; // 4 upgrades = 20% * 4 = 80% reduction
-const COOLDOWN_REDUCTION_PER_LEVEL = 0.2;
-
-// --- Score State ---
-const scoreValueElem = document.getElementById('score-value');
-function updateScoreUI() {
-  scoreValueElem.textContent = GameState.score;
-}
-updateScoreUI();
-
-// --- Shot Radius UI Elements ---
-const shotRadiusSquaresContainer = document.getElementById('shot-radius-squares');
-const increaseRadiusBtn = document.getElementById('increase-radius-btn');
-
-// --- Cooldown Upgrade UI Elements ---
-const decreaseCooldownBtn = document.getElementById('decrease-cooldown-btn');
-const cooldownLevelBarInner = document.getElementById('cooldown-level-bar-inner');
-
-function getCurrentCooldown() {
-  // Minimum cooldown is 20% of original (after 4 upgrades)
-  const reduction = Math.min(cooldownUpgradeLevel * COOLDOWN_REDUCTION_PER_LEVEL, 0.8);
-  return SHOT_COOLDOWN_S * (1 - reduction);
-}
-
-/* function updateCooldownBarUI() {
-  // Bar width: 100% at 0 upgrades, 20% at max upgrades
-  const percent = 1 - Math.min(cooldownUpgradeLevel * COOLDOWN_REDUCTION_PER_LEVEL, 0.8);
-  cooldownLevelBarInner.style.width = (percent * 100) + '%';
-} */
-//UI.updateCooldownBarUI();
-
-/* function updateShotRadiusUI() {
-  shotRadiusSquaresContainer.innerHTML = '';
-  for (let i = 1; i <= SHOT_RADIUS_MAX; i=i+0.2) {
-    const square = document.createElement('div');
-    square.className = 'shot-radius-square' + (i <= SHOT_RADIUS ? ' filled' : '');
-    shotRadiusSquaresContainer.appendChild(square);
-  }
-}
-updateShotRadiusUI(); */
-
-/* increaseRadiusBtn.addEventListener('click', () => {
-  if (SHOT_RADIUS < SHOT_RADIUS_MAX && GameState.score >= 20) {
-    SHOT_RADIUS = SHOT_RADIUS + 0.2;
-    GameState.score -= 20;
-    updateShotRadiusUI();
-    updateScoreUI();
-  }
-});
-
-// --- Cooldown Upgrade Button Logic ---
-decreaseCooldownBtn.addEventListener('click', () => {
-  if (cooldownUpgradeLevel < COOLDOWN_UPGRADE_MAX && GameState.score >= 20) {
-    cooldownUpgradeLevel++;
-    GameState.score -= 20;
-    updateCooldownBarUI();
-    updateScoreUI();
-  }
-}); */
 
 // --- Scene & Renderer ---
 const scene = new THREE.Scene();
@@ -158,7 +95,6 @@ obstacleManager.initializeObstacles();
 // --- Player ---
 const player = new Player();
 player.loadModel(scene);
-
 const playerShape = new CANNON.Box(new CANNON.Vec3(PLAYER_SIZE * 1.3, PLAYER_SIZE, PLAYER_SIZE * 1.3));
 const playerBody = new CANNON.Body({ type: CANNON.Body.KINEMATIC, material: defaultMaterial });
 playerBody.addShape(playerShape);
@@ -197,13 +133,11 @@ document.addEventListener('keydown', (e) => {
   }
 });
 document.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
-
 renderer.domElement.addEventListener('mousemove', (event) => {
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(mouse, camera);
   raycaster.ray.intersectPlane(groundPlaneRay, cursorWorld);
-
   if (activeMode) {
     player.createCursorIndicator(scene, cursorWorld);
     player.updateCursorIndicator(cursorWorld);
@@ -269,13 +203,10 @@ function animate() {
   cameraManager.update();
   requestAnimationFrame(animate);
   const deltaTime = clock.getDelta();
-
   world.step(1 / 60, deltaTime, 3);
-
   player.update(deltaTime, keys, cursorWorld, scene, playerBody);
-
   enemySpawner.update(deltaTime);
-
+  
   // Enemy hit detection with active shots
   for (const shot of activeShots) {
     for (const enemy of enemySpawner.enemies) {
