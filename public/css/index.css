@@ -1,11 +1,13 @@
+/* Base styles */
 body {
   margin: 0;
   overflow: hidden;
-  background: linear-gradient(180deg, #1e1e1e, #282c34); /* Subtle gradient background */
+  background: linear-gradient(180deg, #1e1e1e, #282c34);
   color: white;
   font-family: sans-serif;
 }
 
+/* Layout containers */
 #canvas-container {
   position: relative;
   width: 100vw;
@@ -16,6 +18,24 @@ canvas {
   display: block;
 }
 
+/* HUD Elements */
+#score-container {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(30, 30, 30, 0.85);
+  padding: 4px 15px;
+  border-radius: 5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 0.7em;
+  font-weight: bold;
+  letter-spacing: 1px;
+  z-index: 20;
+}
+
+/* Cooldown indicator */
 #cooldown-bar-container {
   position: absolute;
   bottom: 20px;
@@ -27,7 +47,6 @@ canvas {
 #cooldown-bar {
   width: 100%;
   height: 100%;
-  /* transform: rotate(-90deg); */
 }
 
 .circle-bg {
@@ -45,102 +64,157 @@ canvas {
   stroke-dashoffset: 100;
   transition: stroke-dashoffset 0.01s linear;
 }
-/* 
-#game-over-message {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 48px;
-  color: #ff3333;
-  text-align: center;
-  text-shadow: 2px 2px 4px black;
-  display: none; /* Hidden by default */
 
-
+/* Shot radius UI */
 #shot-radius-ui {
   position: absolute;
   top: 30px;
   right: 30px;
-  width: 100px;
+  width: 80px;
+  background: rgba(30, 30, 30, 0.85);
+  padding: 12px 10px 10px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  z-index: 10;
   display: flex;
   flex-direction: column;
   align-items: center;
-  z-index: 10;
-  background: rgba(30, 30, 30, 0.85);
-  border-radius: 12px;
-  padding: 12px 10px 10px 10px;
-  box-shadow: 0 2px 8px #0008;
-}
-
-#increase-radius-btn {
-  width: 32px;
-  height: 32px;
-  margin-bottom: 10px;
-  border-radius: 10px;
-  border: 3px solid #444;
-  background: #222;
-  color: #fff;
-  font-size: 1em;
-  font-weight: bold;
-  cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
-}
-#increase-radius-btn:hover {
-  border-color: #646cff;
-  background: #333;
-}
-
-#shot-radius-squares {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 2px;
 }
 
 .shot-radius-square {
   width: 14px;
   height: 14px;
-  border-radius: 4px;
-  border: 2px solid #646cff;
   background: #222;
-  transition: background 0.2s, border-color 0.2s;
+  border: 2px solid #646cff;
+  border-radius: 4px;
   box-sizing: border-box;
+  transition: background 0.2s, border-color 0.2s;
 }
+
 .shot-radius-square.filled {
   background: #646cff;
   border-color: #fff;
-  box-shadow: 0 0 6px #646cff88;
+  box-shadow: 0 0 6px rgba(100, 108, 255, 0.533);
 }
 
-#score-container {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.7em;
-  color: #fff;
-  background: rgba(30, 30, 30, 0.85);
-  border-radius: 5px;
-  padding: 4px 15px;
-  box-shadow: 0 2px 8px #0008;
-  z-index: 20;
+/* Upgrade system */
+.upgrade-component {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 200px;
+  margin: 8px 0;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.upgrade-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upgrade-label {
+  margin-left: 6px;
+}
+
+.upgrade-cost {
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+  color: #f9b233;
   font-weight: bold;
-  letter-spacing: 1px;
 }
 
-#cooldown-level-bar {
-  /* already styled inline in HTML, but add here for consistency */
-  width: 80px;
-  height: 12px;
-  background: #222;
-  border-radius: 6px;
-  overflow: hidden;
-  margin-top: 6px;
+.upgrade-coin {
+  margin-right: 2px;
+  vertical-align: middle;
 }
-#cooldown-level-bar_inner {
+
+.upgrade-btn {
+  width: 36px;
+  height: 36px;
+  background: #2a2a2a;
+  color: #f9b233;
+  border: 2px solid #f9b233;
+  border-radius: 6px;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.upgrade-btn:hover {
+  background: #f9b233;
+  color: #2a2a2a;
+  transform: scale(1.1);
+  box-shadow: 0 0 15px rgba(249, 178, 51, 0.4);
+}
+
+.upgrade-btn:active {
+  transform: scale(0.95);
+}
+
+.upgrade-btn:disabled {
+  background: #1a1a1a;
+  border-color: #444;
+  color: #444;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.7;
+}
+
+.upgrade-info {
+  display: flex;
+  align-items: center;
+  margin-left: 10px;
+  color: #fff;
+  font-size: 5px;
+  font-family: Arial, sans-serif;
+}
+
+.upgrade-progress {
+  width: 100%;
+  height: 4px;
+  margin-top: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.upgrade-progress-bar {
   height: 100%;
   background: #f9b233;
-  width: 100%;
-  transition: width 0.2s;
+  transition: width 0.3s ease;
 }
+
+/* Animations */
+@keyframes pulse {
+  0% { 
+    transform: scale(1);
+    box-shadow: 0 0 15px rgba(249, 178, 51, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 25px rgba(249, 178, 51, 0.6);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 15px rgba(249, 178, 51, 0.4);
+  }
+}
+
+.upgrade-btn.available {
+  animation: pulse 1.5s infinite;
+  box-shadow: 0 0 20px rgba(249, 178, 51, 0.6);
+}
+
