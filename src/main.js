@@ -97,7 +97,13 @@ obstacleManager.initializeObstacles();
 const player = new Player();
 player.loadModel(scene);
 const playerShape = new CANNON.Box(new CANNON.Vec3(PLAYER_SIZE * 1.3, PLAYER_SIZE, PLAYER_SIZE * 1.3));
-const playerBody = new CANNON.Body({ type: CANNON.Body.KINEMATIC, material: defaultMaterial });
+// Update player body configuration
+const playerBody = new CANNON.Body({ 
+    type: CANNON.Body.KINEMATIC, 
+    material: defaultMaterial,
+    collisionFilterGroup: 1,
+    collisionFilterMask: 1
+});
 playerBody.addShape(playerShape);
 playerBody.position.set(player.position.x, player.position.y, player.position.z);
 world.addBody(playerBody);
@@ -130,6 +136,16 @@ document.addEventListener('keydown', (e) => {
       player.enterCombatMode(scene, playerBody);
     } else {
       player.exitCombatMode(scene, playerBody);
+    }
+  }
+  if (e.key.toLowerCase() === 'q') {
+    if (cubeManager.isDragging) {
+      cubeManager.cancelDragging();
+      placeCubeBtn.classList.remove('active');
+    } else {
+      if (cubeManager.startDragging()) {
+        placeCubeBtn.classList.add('active');
+      }
     }
   }
 });

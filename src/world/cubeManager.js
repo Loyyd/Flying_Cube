@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { defaultMaterial } from '../core/settings.js';
+import { GameState } from '../core/settings.js';
+import { UI } from '../ui/uiManager.js';
+
+const CUBE_COST = 50;
 
 export class CubeManager {
     constructor(scene, world) {
@@ -22,12 +26,15 @@ export class CubeManager {
     }
 
     startDragging() {
+        if (GameState.score < CUBE_COST) return false;
+        
         if (!this.previewCube) {
             this.previewCube = new THREE.Mesh(this.cubeGeometry, this.cubeMaterial);
             this.previewCube.castShadow = true;
             this.scene.add(this.previewCube);
         }
         this.isDragging = true;
+        return true;
     }
 
     updateDragPosition(raycaster) {
@@ -44,7 +51,7 @@ export class CubeManager {
     }
 
     placeCube() {
-        if (!this.isDragging || !this.previewCube) return;
+        if (!this.isDragging || !this.previewCube || GameState.score < CUBE_COST) return false;
         
         // Create physical cube
         const cube = new THREE.Mesh(this.cubeGeometry, this.solidCubeMaterial);
@@ -53,20 +60,27 @@ export class CubeManager {
         cube.receiveShadow = true;
         this.scene.add(cube);
 
-        // Add physics
+        // Add physics with collision
         const shape = new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5));
         const body = new CANNON.Body({
             mass: 0,
             material: defaultMaterial,
-            shape: shape
+            shape: shape,
+            collisionFilterGroup: 1,
+            collisionFilterMask: 1
         });
         body.position.copy(cube.position);
         this.world.addBody(body);
+
+        // Deduct cost
+        UI.addScore(-CUBE_COST);
+        UI.updateScoreUI();
 
         // Reset preview
         this.scene.remove(this.previewCube);
         this.previewCube = null;
         this.isDragging = false;
+        return true;
     }
 
     cancelDragging() {
