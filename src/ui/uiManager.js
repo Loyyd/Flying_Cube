@@ -1,8 +1,9 @@
 // Score
 export const GameState = {
-    score: 200
+    score: 2000
 };
-
+const RadiusUpgradeCost = 200;
+const CooldownUpgradeCost = 200;
 export class UIManager {
     constructor() {
         this.score = GameState.score;
@@ -87,17 +88,17 @@ export class UIManager {
     }
 
     handleRadiusUpgrade() {
-        if (this.shotRadius < 2 && this.score >= 20) {
+        if (this.shotRadius < 2 && this.score >= RadiusUpgradeCost) {
             this.shotRadius += 0.2;
-            this.score -= 20;
+            this.score -= RadiusUpgradeCost;
             this.updateAllUI();
         }
     }
 
     handleCooldownUpgrade() {
-        if (this.cooldownLevel < this.COOLDOWN_UPGRADE_MAX && this.score >= 20) {
+        if (this.cooldownLevel < this.COOLDOWN_UPGRADE_MAX && this.score >= CooldownUpgradeCost) {
             this.cooldownLevel++;
-            this.score -= 20;
+            this.score -= CooldownUpgradeCost;
             this.updateAllUI();
         }
     }
