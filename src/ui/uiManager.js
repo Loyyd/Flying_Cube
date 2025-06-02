@@ -84,7 +84,8 @@ export class UIManager {
             // Store references
             this.upgradeComponents.set(type, {
                 button: el.querySelector('.upgrade-btn'),
-                type: el.dataset.type
+                type: el.dataset.type,
+                squares: el.querySelectorAll('.progress-square')
             });
         });
 
@@ -94,6 +95,23 @@ export class UIManager {
         
         this.increaseRadiusBtn = radiusComponent.button;
         this.decreaseCooldownBtn = cooldownComponent.button;
+
+        // Initialize progress squares
+        this.updateProgressSquares('radius', 0);
+        this.updateProgressSquares('cooldown', 0);
+    }
+
+    updateProgressSquares(type, level) {
+        const component = this.upgradeComponents.get(type);
+        if (!component || !component.squares) return;
+
+        component.squares.forEach((square, index) => {
+            if (index < level) {
+                square.classList.add('filled');
+            } else {
+                square.classList.remove('filled');
+            }
+        });
     }
 
     setupEventListeners() {
@@ -105,6 +123,7 @@ export class UIManager {
         if (this.shotRadius < 2 && this.score >= RadiusUpgradeCost) {
             this.shotRadius += RADIUS_INCREASE_STEP;
             this.score -= RadiusUpgradeCost;
+            this.updateProgressSquares('radius', (this.shotRadius - BASE_SHOT_RADIUS) / RADIUS_INCREASE_STEP);
             this.updateAllUI();
         }
     }
@@ -113,6 +132,7 @@ export class UIManager {
         if (this.cooldownLevel < this.COOLDOWN_UPGRADE_MAX && this.score >= CooldownUpgradeCost) {
             this.cooldownLevel++;
             this.score -= CooldownUpgradeCost;
+            this.updateProgressSquares('cooldown', this.cooldownLevel);
             this.updateAllUI();
         }
     }
