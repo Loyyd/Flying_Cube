@@ -68,7 +68,7 @@ class Player extends THREE.Mesh {
         scene.add(this);
         
         // Add collision box visualization
-        const boxGeometry = new THREE.BoxGeometry(2.6, 2, 2.6); // Match physics body size
+        const boxGeometry = new THREE.BoxGeometry(1.5, 1.4, 2.4); // Match physics body size
         const wireframeMaterial = new THREE.MeshBasicMaterial({
             color: 0xff0000,     // Red color for physics body
             wireframe: true,
