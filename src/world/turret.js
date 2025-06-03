@@ -4,6 +4,7 @@ import { defaultMaterial } from '../core/settings.js';
 import { GameState } from '../core/settings.js';
 import { UI } from '../ui/uiManager.js';
 import { Bullet } from './bullet.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 const TURRET_COST = 500;
 const TURRET_RANGE = 5;
@@ -15,16 +16,17 @@ export class Turret {
         this.scene = scene;
         this.world = world;
         this.isDragging = false;
-        this.previewCube = null;
+        this.previewTurret = null;
+        this.previewPosition = new THREE.Vector3();  // Add this line
         this.groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
         
-        this.cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
-        this.cubeMaterial = new THREE.MeshStandardMaterial({
+        this.loader = new GLTFLoader();
+        this.previewMaterial = new THREE.MeshStandardMaterial({
             color: 0x9292D0,
             transparent: true,
             opacity: 0.6
         });
-        this.solidCubeMaterial = new THREE.MeshStandardMaterial({
+        this.solidMaterial = new THREE.MeshStandardMaterial({
             color: 0x9292D0
         });
         this.placedTurrets = [];
@@ -45,76 +47,100 @@ export class Turret {
         }
         document.getElementById('place-cube-btn').classList.remove('disabled');
         
-        if (!this.previewCube) {
-            this.previewCube = new THREE.Mesh(this.cubeGeometry, this.cubeMaterial);
-            this.previewCube.castShadow = true;
-            this.scene.add(this.previewCube);
+        // Load model if not already loaded
+        if (!this.previewTurret) {
+            // Create temporary visual indicator while model loads
+            const tempGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+            const tempMesh = new THREE.Mesh(tempGeometry, this.previewMaterial);
+            this.previewTurret = tempMesh;
+            this.scene.add(this.previewTurret);
+
+            // Load actual model
+            this.loader.load('/assets/tank.glb', (gltf) => {
+                const model = gltf.scene;
+                model.scale.set(0.2, 0.2, 0.2);
+                model.traverse((child) => {
+                    if (child.isMesh) {
+                        child.material = this.previewMaterial;
+                    }
+                });
+                // Replace temporary mesh with actual model
+                this.scene.remove(this.previewTurret);
+                this.previewTurret = model;
+                this.previewTurret.position.copy(this.previewPosition);
+                this.scene.add(this.previewTurret);
+            });
         }
         this.isDragging = true;
         return true;
     }
 
     updateDragPosition(raycaster) {
-        if (!this.isDragging || !this.previewCube) return;
+        if (!this.isDragging) return;
         
         const intersectPoint = new THREE.Vector3();
         if (raycaster.ray.intersectPlane(this.groundPlane, intersectPoint)) {
             // Round to grid
             intersectPoint.x = Math.round(intersectPoint.x);
             intersectPoint.z = Math.round(intersectPoint.z);
-            intersectPoint.y = 0.5; // Half height of cube
-            this.previewCube.position.copy(intersectPoint);
+            intersectPoint.y = 0;
+            this.previewPosition.copy(intersectPoint);
+            if (this.previewTurret) {
+                this.previewTurret.position.copy(this.previewPosition);
+            }
         }
     }
 
     placeCube() {
-        if (!this.isDragging || !this.previewCube || GameState.score < TURRET_COST) return false;
+        if (!this.isDragging || !this.previewTurret || GameState.score < TURRET_COST) return false;
         
-        // Try to deduct cost using UI
         if (!UI.addScore(-TURRET_COST)) {
             return false;
         }
         
-        // Create physical cube
-        const cube = new THREE.Mesh(this.cubeGeometry, this.solidCubeMaterial);
-        cube.position.copy(this.previewCube.position);
-        cube.castShadow = true;
-        cube.receiveShadow = true;
-        this.scene.add(cube);
+        this.loader.load('/assets/tank.glb', (gltf) => {
+            const turretModel = gltf.scene;
+            turretModel.scale.set(0.2, 0.2, 0.2);
+            turretModel.position.copy(this.previewPosition);  // Use previewPosition instead
+            turretModel.traverse((child) => {
+                if (child.isMesh) {
+                    child.material = this.solidMaterial;
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
+            this.scene.add(turretModel);
 
-        // Add range indicator
-        const rangeIndicator = new THREE.Mesh(this.rangeGeometry, this.rangeMaterial);
-        rangeIndicator.rotation.x = -Math.PI / 2;
-        rangeIndicator.position.copy(cube.position);
-        rangeIndicator.position.y = 0.1;
-        this.scene.add(rangeIndicator);
+            // Add range indicator
+            const rangeIndicator = new THREE.Mesh(this.rangeGeometry, this.rangeMaterial);
+            rangeIndicator.rotation.x = -Math.PI / 2;
+            rangeIndicator.position.copy(turretModel.position);
+            rangeIndicator.position.y = 0.1;
+            this.scene.add(rangeIndicator);
 
-        // Add physics with collision
-        const shape = new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5));
-        const body = new CANNON.Body({
-            mass: 0,
-            material: defaultMaterial,
-            shape: shape,
-            collisionFilterGroup: 1,
-            collisionFilterMask: 1
+            // Add physics
+            const shape = new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5));
+            const body = new CANNON.Body({
+                mass: 0,
+                material: defaultMaterial,
+                shape: shape,
+                collisionFilterGroup: 1,
+                collisionFilterMask: 1
+            });
+            body.position.copy(turretModel.position);
+            this.world.addBody(body);
+
+            this.placedTurrets.push({
+                mesh: turretModel,
+                body: body,
+                range: rangeIndicator,
+                lastShot: 0
+            });
         });
-        body.position.copy(cube.position);
-        this.world.addBody(body);
 
-        // Store turret data
-        this.placedTurrets.push({
-            mesh: cube,
-            body: body,
-            range: rangeIndicator,
-            lastShot: 0
-        });
-
-        // Update UI score (removed direct score manipulation)
         UI.updateScoreUI();
-
-        // Reset preview
-        this.scene.remove(this.previewCube);
-        this.previewCube = null;
+        this.scene.remove(this.previewTurret);
+        this.previewTurret = null;
         this.isDragging = false;
         return true;
     }
@@ -164,6 +190,10 @@ export class Turret {
                     .subVectors(closestEnemy.mesh.position, turret.mesh.position)
                     .normalize();
                 
+                // Rotate turret towards enemy
+                const angle = Math.atan2(direction.x, direction.z);
+                turret.mesh.rotation.y = angle;
+
                 // Create bullet at turret position
                 const bulletPos = turret.mesh.position.clone().add(direction.multiplyScalar(0.6));
                 this.bullets.push(new Bullet(bulletPos, direction, this.scene));
@@ -171,17 +201,21 @@ export class Turret {
                 turret.lastShot = currentTime;
 
                 // Visual feedback for shot
-                const material = turret.mesh.material;
-                material.color.setHex(0xff0000);
-                setTimeout(() => material.color.setHex(0x4444ff), 100);
+                turret.mesh.traverse((child) => {
+                    if (child.isMesh && child.material) {
+                        const originalColor = child.material.color.getHex();
+                        child.material.color.setHex(0xff0000);
+                        setTimeout(() => child.material.color.setHex(originalColor), 100);
+                    }
+                });
             }
         });
     }
     
     cancelDragging() {
-        if (this.previewCube) {
-            this.scene.remove(this.previewCube);
-            this.previewCube = null;
+        if (this.previewTurret) {
+            this.scene.remove(this.previewTurret);
+            this.previewTurret = null;
         }
         this.isDragging = false;
     }
