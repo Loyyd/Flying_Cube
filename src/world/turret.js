@@ -24,11 +24,18 @@ export class Turret {
         this.loadedTurretModel = null; // Add this line
         this.animationMixers = new Map(); // Add this line
         
+        // Add wander properties
+        this.WANDER_SPEED = 0.65;
+        this.WANDER_INTERVAL = 5; // seconds before picking new target
+        this.lastWanderTargets = new Map(); // Store wander targets for each turret
+        this.wanderTimers = new Map(); // Store timer for each turret
+        
         // Preload the turret model
         this.loader.load('/assets/turret.glb', (gltf) => {
             this.loadedTurretModel = gltf.scene;
-            // Store the shoot animation
+            // Store both animations
             this.shootAnimation = gltf.animations.find(anim => anim.name === "SHOOT_ANIM");
+            this.walkAnimation = gltf.animations.find(anim => anim.name === "WALK_ANIM");
         });
 
         this.previewMaterial = new THREE.MeshStandardMaterial({
@@ -162,6 +169,14 @@ export class Turret {
         return true;
     }
 
+    _getRandomWanderTarget(turret) {
+        const range = 20; // wander range
+        return {
+            x: turret.mesh.position.x + (Math.random() * range - range/2),
+            z: turret.mesh.position.z + (Math.random() * range - range/2)
+        };
+    }
+
     update(deltaTime, enemies) {
         // Update animation mixers
         this.animationMixers.forEach(mixer => mixer.update(deltaTime));
@@ -231,26 +246,78 @@ export class Turret {
             // Apply smooth rotation
             turret.mesh.rotation.y += angleDiff * this.ROTATION_SPEED * deltaTime;
 
-            // Fire only if we have an enemy and are aimed correctly
-            if (closestEnemy && currentTime - turret.lastShot >= TURRET_COOLDOWN) {
-                const direction = new THREE.Vector3()
-                    .subVectors(closestEnemy.mesh.position, turret.mesh.position)
-                    .normalize();
-                
-                // Create bullet at turret position
-                const bulletPos = turret.mesh.position.clone().add(direction.multiplyScalar(0.6));
-                bulletPos.y += 0.5;
-                this.bullets.push(new Bullet(bulletPos, direction, this.scene));
-                
-                // Play shoot animation
-                const mixer = this.animationMixers.get(turret.mesh);
-                if (mixer && this.shootAnimation) {
-                    const action = mixer.clipAction(this.shootAnimation);
-                    action.reset();
-                    action.play();
+            const mixer = this.animationMixers.get(turret.mesh);
+            
+            if (closestEnemy) {
+                // Enemy found - handle rotation and shooting as before
+                // Fire only if we have an enemy and are aimed correctly
+                if (closestEnemy && currentTime - turret.lastShot >= TURRET_COOLDOWN) {
+                    const direction = new THREE.Vector3()
+                        .subVectors(closestEnemy.mesh.position, turret.mesh.position)
+                        .normalize();
+                    
+                    // Create bullet at turret position
+                    const bulletPos = turret.mesh.position.clone().add(direction.multiplyScalar(0.6));
+                    bulletPos.y += 0.5;
+                    this.bullets.push(new Bullet(bulletPos, direction, this.scene));
+                    
+                    // Play shoot animation
+                    const mixer = this.animationMixers.get(turret.mesh);
+                    if (mixer && this.shootAnimation) {
+                        const action = mixer.clipAction(this.shootAnimation);
+                        action.reset();
+                        action.play();
+                    }
+                    
+                    turret.lastShot = currentTime;
                 }
-                
-                turret.lastShot = currentTime;
+
+                // Stop walk animation if playing
+                if (mixer && this.walkAnimation) {
+                    const walkAction = mixer.clipAction(this.walkAnimation);
+                    walkAction.stop();
+                }
+            } else {
+                // No enemy in range - implement wandering
+                if (!this.lastWanderTargets.has(turret)) {
+                    this.lastWanderTargets.set(turret, this._getRandomWanderTarget(turret));
+                    this.wanderTimers.set(turret, 0);
+                }
+
+                // Update wander timer
+                let wanderTimer = this.wanderTimers.get(turret) + deltaTime;
+                if (wanderTimer >= this.WANDER_INTERVAL) {
+                    this.lastWanderTargets.set(turret, this._getRandomWanderTarget(turret));
+                    wanderTimer = 0;
+                }
+                this.wanderTimers.set(turret, wanderTimer);
+
+                // Move towards wander target
+                const target = this.lastWanderTargets.get(turret);
+                const dx = target.x - turret.mesh.position.x;
+                const dz = target.z - turret.mesh.position.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+
+                if (dist > 0.1) {
+                    // Move turret
+                    turret.mesh.position.x += (dx / dist) * this.WANDER_SPEED * deltaTime;
+                    turret.mesh.position.z += (dz / dist) * this.WANDER_SPEED * deltaTime;
+                    turret.range.position.copy(turret.mesh.position);
+                    turret.range.position.y = 0.1;
+                    turret.body.position.copy(turret.mesh.position);
+
+                    // Update rotation to face movement direction
+                    const targetAngle = Math.atan2(dx, dz);
+                    turret.mesh.rotation.y = targetAngle;
+
+                    // Play walk animation
+                    if (mixer && this.walkAnimation) {
+                        const walkAction = mixer.clipAction(this.walkAnimation);
+                        if (!walkAction.isRunning()) {
+                            walkAction.play();
+                        }
+                    }
+                }
             }
         });
     }
