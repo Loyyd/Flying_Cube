@@ -1,7 +1,17 @@
 // Game State
 export const GameState = {
     score: 2000,
-    SHOT_RADIUS: 1
+    SHOT_RADIUS: 1,
+
+    // Add method to safely update score
+    updateScore(amount) {
+        const newScore = this.score + amount;
+        if (newScore >= 0) {
+            this.score = newScore;
+            return true;
+        }
+        return false;
+    }
 };
 
 

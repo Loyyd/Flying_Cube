@@ -120,21 +120,21 @@ export class UIManager {
     }
 
     handleRadiusUpgrade() {
-        if (this.shotRadius < SHOT_RADIUS_MAX && this.score >= RadiusUpgradeCost) {
+        if (this.shotRadius < SHOT_RADIUS_MAX && GameState.score >= RadiusUpgradeCost) {
             this.shotRadius += RADIUS_INCREASE_STEP;
-            this.score -= RadiusUpgradeCost;
-            this.updateProgressSquares('radius', (this.shotRadius-1)*2);
-            this.updateAllUI();
-            GameState.SHOT_RADIUS = this.shotRadius;
+            if (this.addScore(-RadiusUpgradeCost)) {
+                this.updateProgressSquares('radius', (this.shotRadius-1)*2);
+                GameState.SHOT_RADIUS = this.shotRadius;
+            }
         }
     }
 
     handleCooldownUpgrade() {
-        if (this.cooldownLevel < this.COOLDOWN_UPGRADE_MAX && this.score >= CooldownUpgradeCost) {
-            this.cooldownLevel++;
-            this.score -= CooldownUpgradeCost;
-            this.updateProgressSquares('cooldown', this.cooldownLevel);
-            this.updateAllUI();
+        if (this.cooldownLevel < this.COOLDOWN_UPGRADE_MAX && GameState.score >= CooldownUpgradeCost) {
+            if (this.addScore(-CooldownUpgradeCost)) {
+                this.cooldownLevel++;
+                this.updateProgressSquares('cooldown', this.cooldownLevel);
+            }
         }
     }
 
@@ -143,7 +143,16 @@ export class UIManager {
     }
 
     updateScoreUI() {
+        this.score = GameState.score; // Keep local score in sync
         this.scoreElement.textContent = this.score;
+        
+        // Update turret button state
+        const placeCubeBtn = document.getElementById('place-cube-btn');
+        if (this.score < 500) {
+            placeCubeBtn.classList.add('disabled');
+        } else {
+            placeCubeBtn.classList.remove('disabled');
+        }
     }
 
     updateCooldownCircle(progress) {
@@ -157,8 +166,12 @@ export class UIManager {
     }
 
     addScore(amount) {
-        this.score += amount;
-        this.updateScoreUI();
+        if (GameState.updateScore(amount)) {
+            this.score = GameState.score;
+            this.updateScoreUI();
+            return true;
+        }
+        return false;
     }
 
     getShotRadius() {

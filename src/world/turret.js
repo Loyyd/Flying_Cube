@@ -39,7 +39,11 @@ export class Turret {
     }
 
     startDragging() {
-        if (GameState.score < TURRET_COST) return false;
+        if (GameState.score < TURRET_COST) {
+            document.getElementById('place-cube-btn').classList.add('disabled');
+            return false;
+        }
+        document.getElementById('place-cube-btn').classList.remove('disabled');
         
         if (!this.previewCube) {
             this.previewCube = new THREE.Mesh(this.cubeGeometry, this.cubeMaterial);
@@ -65,6 +69,11 @@ export class Turret {
 
     placeCube() {
         if (!this.isDragging || !this.previewCube || GameState.score < TURRET_COST) return false;
+        
+        // Try to deduct cost using UI
+        if (!UI.addScore(-TURRET_COST)) {
+            return false;
+        }
         
         // Create physical cube
         const cube = new THREE.Mesh(this.cubeGeometry, this.solidCubeMaterial);
@@ -100,8 +109,7 @@ export class Turret {
             lastShot: 0
         });
 
-        // Deduct cost
-        UI.addScore(-TURRET_COST);
+        // Update UI score (removed direct score manipulation)
         UI.updateScoreUI();
 
         // Reset preview
