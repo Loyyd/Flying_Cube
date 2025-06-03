@@ -28,29 +28,16 @@ class Enemy {
     this.body = new CANNON.Body({ mass: 1 ,material: defaultMaterial });
     this.body.addShape(shape);
 
-    // Spawn at random position, but not within SHOT_RANGE of player
-    let spawnPos;
-    do {
-      spawnPos = {
-        x: Math.random() * 40 - 20,
-        z: Math.random() * 40 - 20
-      };
-    } while (
-      Math.hypot(
-        spawnPos.x - this.player.position.x,
-        spawnPos.z - this.player.position.z
-      ) < SHOT_RANGE
-    );
-    this.body.position.set(
-      spawnPos.x,
-      ENEMY_RADIUS,
-      spawnPos.z
-    );
+    // Remove the random spawn position logic since spawner handles it
+    this.body.position.set(0, ENEMY_RADIUS, 0);
     this.world.addBody(this.body);
 
-    // Sync mesh to body
-    this.mesh.position.copy(this.body.position);
-    this.mesh.quaternion.copy(this.body.quaternion);
+    // Initialize with zero velocity
+    this.body.velocity = new CANNON.Vec3(0, 0, 0);
+    
+    // Make body kinematic until hit
+    this.body.type = CANNON.Body.KINEMATIC;
+    this.body.updateMassProperties();
 
     this.isRigid = false;
 
@@ -99,42 +86,35 @@ class Enemy {
     const dz = this.player.position.z - this.body.position.z;
     const distToPlayer = Math.sqrt(dx * dx + dz * dz);
 
+    let moveX = 0;
+    let moveZ = 0;
+
     if (distToPlayer < CHASE_RADIUS) {
       // Chase player
-      const direction = new CANNON.Vec3(dx, 0, dz);
-      if (direction.length() > 0.01) {
-        direction.normalize();
-        this.body.velocity.x = direction.x * ENEMY_SPEED;
-        this.body.velocity.z = direction.z * ENEMY_SPEED;
-      } else {
-        this.body.velocity.x = 0;
-        this.body.velocity.z = 0;
-      }
+      moveX = dx / distToPlayer * ENEMY_SPEED * deltaTime;
+      moveZ = dz / distToPlayer * ENEMY_SPEED * deltaTime;
     } else {
-      // Wander toward target
+      // Wander behavior
+      this.wanderTimer += deltaTime;
+      if (this.wanderTimer >= WANDER_CHANGE_INTERVAL) {
+        this.wanderTarget = this._getRandomWanderTarget();
+        this.wanderTimer = 0;
+      }
+
       const tx = this.wanderTarget.x - this.body.position.x;
       const tz = this.wanderTarget.z - this.body.position.z;
       const distToTarget = Math.sqrt(tx * tx + tz * tz);
-
-      if (distToTarget < 1.0) {
-        // Arrived at target, pick a new one
-        this.wanderTarget = this._getRandomWanderTarget();
-      }
-
-      const direction = new CANNON.Vec3(tx, 0, tz);
-      if (direction.length() > 0.01) {
-        direction.normalize();
-        this.body.velocity.x = direction.x * ENEMY_WANDER_SPEED;
-        this.body.velocity.z = direction.z * ENEMY_WANDER_SPEED;
-      } else {
-        this.body.velocity.x = 0;
-        this.body.velocity.z = 0;
+      
+      if (distToTarget > 0.1) {
+        moveX = tx / distToTarget * ENEMY_WANDER_SPEED * deltaTime;
+        moveZ = tz / distToTarget * ENEMY_WANDER_SPEED * deltaTime;
       }
     }
 
-    // Sync mesh to body
+    // Update position
+    this.body.position.x += moveX;
+    this.body.position.z += moveZ;
     this.mesh.position.copy(this.body.position);
-    this.mesh.quaternion.copy(this.body.quaternion);
   }
 
   hitByShot() {

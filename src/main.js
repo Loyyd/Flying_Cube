@@ -247,6 +247,18 @@ function animate() {
   
   // Enemy hit detection with active shots
   for (const shot of activeShots) {
+    // Check spawner hits
+    for (const spawner of enemySpawner.spawners) {
+      const dist = spawner.mesh.position.distanceTo(shot.position);
+      if (dist <= GameState.SHOT_RADIUS) {
+        enemySpawner.hitBox(spawner);
+        if (!spawner.active) {
+          UI.addScore(50); // Bonus score for destroying a spawner
+        }
+      }
+    }
+    
+    // Check enemy hits
     for (const enemy of enemySpawner.enemies) {
       if (!enemy.isRigid) {
         const dist = enemy.mesh.position.distanceTo(shot.position);
