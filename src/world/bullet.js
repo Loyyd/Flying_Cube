@@ -7,22 +7,15 @@ export class Bullet {
         this.distanceTraveled = 0;
         this.direction = direction.normalize();
         
-        // Create glowing bullet mesh
-        const geometry = new THREE.SphereGeometry(0.15, 16, 16);
+        // Create simple bullet mesh
+        const geometry = new THREE.SphereGeometry(0.075, 8, 8); // Half the original size
         const material = new THREE.MeshStandardMaterial({ 
             color: 0xff6600,
-            emissive: 0xff3300,
-            emissiveIntensity: 2,
             metalness: 0.5,
-            roughness: 0.2
+            roughness: 0.5
         });
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.copy(position);
-
-        // Add point light to bullet
-        this.light = new THREE.PointLight(0xff6600, 1, 2);
-        this.light.position.copy(position);
-        this.mesh.add(this.light);
         
         scene.add(this.mesh);
     }
@@ -44,7 +37,6 @@ export class Bullet {
 
     dispose(scene) {
         scene.remove(this.mesh);
-        this.mesh.remove(this.light);
         this.mesh.geometry.dispose();
         this.mesh.material.dispose();
     }

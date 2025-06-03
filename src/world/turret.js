@@ -17,12 +17,18 @@ export class Turret {
         this.world = world;
         this.isDragging = false;
         this.previewTurret = null;
-        this.previewPosition = new THREE.Vector3();  // Add this line
+        this.previewPosition = new THREE.Vector3();
         this.groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
         
         this.loader = new GLTFLoader();
+        this.loadedTurretModel = null; // Add this line
+        
+        // Preload the turret model
+        this.loader.load('/assets/turret.glb', (gltf) => {
+            this.loadedTurretModel = gltf.scene;
+        });
+
         this.previewMaterial = new THREE.MeshStandardMaterial({
-            color: 0x9292D0,
             transparent: true,
             opacity: 0.6
         });
@@ -47,29 +53,26 @@ export class Turret {
         }
         document.getElementById('place-cube-btn').classList.remove('disabled');
         
-        // Load model if not already loaded
         if (!this.previewTurret) {
-            // Create temporary visual indicator while model loads
-            const tempGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-            const tempMesh = new THREE.Mesh(tempGeometry, this.previewMaterial);
-            this.previewTurret = tempMesh;
-            this.scene.add(this.previewTurret);
-
-            // Load actual model
-            this.loader.load('/assets/turret.glb', (gltf) => {
-                const model = gltf.scene;
-                model.scale.set(0.3, 0.3, 0.3);  // Adjusted scale for turret
-                model.traverse((child) => {
+            if (this.loadedTurretModel) {
+                this.previewTurret = this.loadedTurretModel.clone();
+                this.previewTurret.scale.set(0.1, 0.1, 0.1);  // 3x smaller
+                this.previewTurret.traverse((child) => {
                     if (child.isMesh) {
-                        child.material = this.previewMaterial;
+                        // Keep original material but make it transparent
+                        child.material = child.material.clone();
+                        child.material.transparent = true;
+                        child.material.opacity = 0.6;
                     }
                 });
-                // Replace temporary mesh with actual model
-                this.scene.remove(this.previewTurret);
-                this.previewTurret = model;
                 this.previewTurret.position.copy(this.previewPosition);
                 this.scene.add(this.previewTurret);
-            });
+            } else {
+                // Fallback to temporary box if model hasn't loaded yet
+                const tempGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+                this.previewTurret = new THREE.Mesh(tempGeometry, this.previewMaterial);
+                this.scene.add(this.previewTurret);
+            }
         }
         this.isDragging = true;
         return true;
@@ -98,13 +101,13 @@ export class Turret {
             return false;
         }
         
-        this.loader.load('/assets/turret.glb', (gltf) => {
-            const turretModel = gltf.scene;
-            turretModel.scale.set(0.3, 0.3, 0.3);  // Adjusted scale for turret
-            turretModel.position.copy(this.previewPosition);  // Use previewPosition instead
+        if (this.loadedTurretModel) {
+            const turretModel = this.loadedTurretModel.clone();
+            turretModel.scale.set(0.1, 0.1, 0.1);  // 3x smaller
+            turretModel.position.copy(this.previewPosition);
             turretModel.traverse((child) => {
                 if (child.isMesh) {
-                    child.material = this.solidMaterial;
+                    // Keep original materials
                     child.castShadow = true;
                     child.receiveShadow = true;
                 }
@@ -136,7 +139,7 @@ export class Turret {
                 range: rangeIndicator,
                 lastShot: 0
             });
-        });
+        }
 
         UI.updateScoreUI();
         this.scene.remove(this.previewTurret);
@@ -199,15 +202,6 @@ export class Turret {
                 this.bullets.push(new Bullet(bulletPos, direction, this.scene));
                 
                 turret.lastShot = currentTime;
-
-                // Visual feedback for shot
-                turret.mesh.traverse((child) => {
-                    if (child.isMesh && child.material) {
-                        const originalColor = child.material.color.getHex();
-                        child.material.color.setHex(0xff0000);
-                        setTimeout(() => child.material.color.setHex(originalColor), 100);
-                    }
-                });
             }
         });
     }
