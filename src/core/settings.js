@@ -62,7 +62,7 @@ export const CAMERA_OFFSET_Z = 10;
 export const CAMERA_LERP_FACTOR = 0.05;
 
 // Game/scene settings
-export const GRID_SIZE = 50;
+export const GRID_SIZE = 100;
 export const PLAYER_SIZE = 1;
 export const SCENE_BACKGROUND_COLOR = 0x282c34;
 

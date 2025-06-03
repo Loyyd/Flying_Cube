@@ -21,10 +21,13 @@ export class Turret {
         
         this.loader = new GLTFLoader();
         this.loadedTurretModel = null; // Add this line
+        this.animationMixers = new Map(); // Add this line
         
         // Preload the turret model
         this.loader.load('/assets/turret.glb', (gltf) => {
             this.loadedTurretModel = gltf.scene;
+            // Store the shoot animation
+            this.shootAnimation = gltf.animations.find(anim => anim.name === "SHOOT_ANIM");
         });
 
         this.previewMaterial = new THREE.MeshStandardMaterial({
@@ -134,6 +137,15 @@ export class Turret {
             body.position.copy(turretModel.position);
             this.world.addBody(body);
 
+            // Create animation mixer for this turret
+            const mixer = new THREE.AnimationMixer(turretModel);
+            if (this.shootAnimation) {
+                const action = mixer.clipAction(this.shootAnimation);
+                action.setLoop(THREE.LoopOnce);
+                action.clampWhenFinished = true;
+            }
+            this.animationMixers.set(turretModel, mixer);
+
             this.placedTurrets.push({
                 mesh: turretModel,
                 body: body,
@@ -150,6 +162,9 @@ export class Turret {
     }
 
     update(deltaTime, enemies) {
+        // Update animation mixers
+        this.animationMixers.forEach(mixer => mixer.update(deltaTime));
+
         const currentTime = performance.now() / 1000;
         
         // Update existing bullets
@@ -225,6 +240,14 @@ export class Turret {
                 const bulletPos = turret.mesh.position.clone().add(direction.multiplyScalar(0.6));
                 bulletPos.y += 0.3; // Add this line to raise bullet spawn height
                 this.bullets.push(new Bullet(bulletPos, direction, this.scene));
+                
+                // Play shoot animation
+                const mixer = this.animationMixers.get(turret.mesh);
+                if (mixer && this.shootAnimation) {
+                    const action = mixer.clipAction(this.shootAnimation);
+                    action.reset();
+                    action.play();
+                }
                 
                 turret.lastShot = currentTime;
             }
