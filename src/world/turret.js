@@ -9,6 +9,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 const TURRET_RANGE = 5;
 const TURRET_COOLDOWN = 0.8;
 const RING_THICKNESS = 0.15;
+const TURRET_SCALE = 0.07;
 
 export class Turret {
     constructor(scene, world) {
@@ -60,7 +61,7 @@ export class Turret {
         if (!this.previewTurret) {
             if (this.loadedTurretModel) {
                 this.previewTurret = this.loadedTurretModel.clone();
-                this.previewTurret.scale.set(0.1, 0.1, 0.1);  // 3x smaller
+                this.previewTurret.scale.set(TURRET_SCALE, TURRET_SCALE, TURRET_SCALE);
                 this.previewTurret.traverse((child) => {
                     if (child.isMesh) {
                         // Keep original material but make it transparent
@@ -107,7 +108,7 @@ export class Turret {
         
         if (this.loadedTurretModel) {
             const turretModel = this.loadedTurretModel.clone();
-            turretModel.scale.set(0.1, 0.1, 0.1);  // 3x smaller
+            turretModel.scale.set(TURRET_SCALE, TURRET_SCALE, TURRET_SCALE);
             turretModel.position.copy(this.previewPosition);
             turretModel.traverse((child) => {
                 if (child.isMesh) {
@@ -238,7 +239,7 @@ export class Turret {
                 
                 // Create bullet at turret position
                 const bulletPos = turret.mesh.position.clone().add(direction.multiplyScalar(0.6));
-                bulletPos.y += 0.3; // Add this line to raise bullet spawn height
+                bulletPos.y += 0.5;
                 this.bullets.push(new Bullet(bulletPos, direction, this.scene));
                 
                 // Play shoot animation
