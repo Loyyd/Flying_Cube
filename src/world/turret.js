@@ -56,9 +56,9 @@ export class Turret {
             this.scene.add(this.previewTurret);
 
             // Load actual model
-            this.loader.load('/assets/tank.glb', (gltf) => {
+            this.loader.load('/assets/turret.glb', (gltf) => {
                 const model = gltf.scene;
-                model.scale.set(0.2, 0.2, 0.2);
+                model.scale.set(0.3, 0.3, 0.3);  // Adjusted scale for turret
                 model.traverse((child) => {
                     if (child.isMesh) {
                         child.material = this.previewMaterial;
@@ -98,9 +98,9 @@ export class Turret {
             return false;
         }
         
-        this.loader.load('/assets/tank.glb', (gltf) => {
+        this.loader.load('/assets/turret.glb', (gltf) => {
             const turretModel = gltf.scene;
-            turretModel.scale.set(0.2, 0.2, 0.2);
+            turretModel.scale.set(0.3, 0.3, 0.3);  // Adjusted scale for turret
             turretModel.position.copy(this.previewPosition);  // Use previewPosition instead
             turretModel.traverse((child) => {
                 if (child.isMesh) {
