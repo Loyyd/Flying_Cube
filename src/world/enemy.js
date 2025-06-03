@@ -25,26 +25,17 @@ class Enemy {
 
     // Physics
     const shape = new CANNON.Box(new CANNON.Vec3(ENEMY_RADIUS, ENEMY_RADIUS, ENEMY_RADIUS));
-    this.body = new CANNON.Body({ mass: 1 ,material: defaultMaterial });
+    this.body = new CANNON.Body({ mass: 1, material: defaultMaterial });
     this.body.addShape(shape);
-
-    // Remove the random spawn position logic since spawner handles it
     this.body.position.set(0, ENEMY_RADIUS, 0);
     this.world.addBody(this.body);
-
-    // Initialize with zero velocity
-    this.body.velocity = new CANNON.Vec3(0, 0, 0);
     
-    // Make body kinematic until hit
-    this.body.type = CANNON.Body.KINEMATIC;
-    this.body.updateMassProperties();
+    // Moderate damping to prevent excessive bouncing
+    this.body.linearDamping = 0.1;
+    this.body.angularDamping = 0.1;
 
-    this.isRigid = false;
-
-    // Wandering state
     this.wanderTarget = this._getRandomWanderTarget();
     this.wanderTimer = 0;
-
     this.timeSinceHit = null;
   }
 
@@ -67,16 +58,15 @@ class Enemy {
   }
 
   update(deltaTime) {
-    if (this.isRigid) {
-      // Kill after 5 seconds in dark red state
-      if (this.timeSinceHit !== null) {
-        this.timeSinceHit += deltaTime;
-        if (this.timeSinceHit >= 5) {
-          this.dispose();
-          this._disposed = true;
-          return;
-        }
+    if (this.timeSinceHit !== null) {
+      this.timeSinceHit += deltaTime;
+      if (this.timeSinceHit >= 5) {
+        this.dispose();
+        this._disposed = true;
+        return;
       }
+      
+      // When hit, just update visual position
       this.mesh.position.copy(this.body.position);
       this.mesh.quaternion.copy(this.body.quaternion);
       return;
@@ -87,13 +77,13 @@ class Enemy {
     const dz = this.player.position.z - this.body.position.z;
     const distToPlayer = Math.sqrt(dx * dx + dz * dz);
 
-    let moveX = 0;
-    let moveZ = 0;
+    let targetVelX = 0;
+    let targetVelZ = 0;
 
     if (distToPlayer < CHASE_RADIUS) {
       // Chase player
-      moveX = dx / distToPlayer * ENEMY_SPEED * deltaTime;
-      moveZ = dz / distToPlayer * ENEMY_SPEED * deltaTime;
+      targetVelX = dx / distToPlayer * ENEMY_SPEED;
+      targetVelZ = dz / distToPlayer * ENEMY_SPEED;
     } else {
       // Wander behavior
       this.wanderTimer += deltaTime;
@@ -107,29 +97,37 @@ class Enemy {
       const distToTarget = Math.sqrt(tx * tx + tz * tz);
       
       if (distToTarget > 0.1) {
-        moveX = tx / distToTarget * ENEMY_WANDER_SPEED * deltaTime;
-        moveZ = tz / distToTarget * ENEMY_WANDER_SPEED * deltaTime;
+        targetVelX = tx / distToTarget * ENEMY_WANDER_SPEED;
+        targetVelZ = tz / distToTarget * ENEMY_WANDER_SPEED;
       }
     }
 
-    // Update position
-    this.body.position.x += moveX;
-    this.body.position.z += moveZ;
+    // Set velocity directly for movement
+    this.body.velocity.x = targetVelX;
+    this.body.velocity.z = targetVelZ;
+    // Keep Y velocity as is to allow for physics interactions
+    
+    // Update visual position
     this.mesh.position.copy(this.body.position);
+    this.mesh.quaternion.copy(this.body.quaternion);
   }
 
   hitByShot() {
-    if (this.isRigid) return;
+    if (this.timeSinceHit !== null) return;
+    
     // Change color to dark red
     if (this.mesh.material) {
       this.mesh.material.color.setHex(DARK_RED);
     }
-    // Make body dynamic (full rigidbody)
-    this.isRigid = true;
-    this.body.mass = 1;
-    this.body.type = CANNON.Body.DYNAMIC;
-    this.body.updateMassProperties();
-
+    
+    // Add impulse from shot
+    const randomImpulse = new CANNON.Vec3(
+      (Math.random() - 0.5) * 10,
+      5,
+      (Math.random() - 0.5) * 10
+    );
+    this.body.applyImpulse(randomImpulse);
+    
     // Start timer for disposal
     this.timeSinceHit = 0;
   }
