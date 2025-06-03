@@ -35,6 +35,8 @@ class Player extends THREE.Mesh {
         this.targetRotationY = this.rotation.y;
         this.rotorBone = null;
         this.targetQuaternion = new THREE.Quaternion();
+        this.collisionBoxHelper = null;
+        this.physicsBody = null;
     }
 
 
@@ -64,6 +66,17 @@ class Player extends THREE.Mesh {
             this.rotorBone = tank.getObjectByName("rotor");
         });
         scene.add(this);
+        
+        // Add collision box visualization
+        const boxGeometry = new THREE.BoxGeometry(2.6, 2, 2.6); // Match physics body size
+        const wireframeMaterial = new THREE.MeshBasicMaterial({
+            color: 0xff0000,     // Red color for physics body
+            wireframe: true,
+            transparent: true,
+            opacity: 0.5
+        });
+        this.collisionBoxHelper = new THREE.Mesh(boxGeometry, wireframeMaterial);
+        scene.add(this.collisionBoxHelper);
     }
 
     /**
@@ -299,6 +312,19 @@ class Player extends THREE.Mesh {
             this.updateRotorRotation(cursorWorld);
         } else {
             this.removeCursorIndicator(scene);
+        }
+        
+        // Update collision box helper position
+        if (this.collisionBoxHelper) {
+            this.collisionBoxHelper.position.copy(playerBody.position);
+            this.collisionBoxHelper.quaternion.copy(playerBody.quaternion);
+        }
+    }
+
+    // Add method to toggle collision box visibility
+    toggleCollisionBox(visible) {
+        if (this.collisionBoxHelper) {
+            this.collisionBoxHelper.visible = visible;
         }
     }
 }
