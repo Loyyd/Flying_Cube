@@ -198,6 +198,9 @@ renderer.domElement.addEventListener('click', (event) => {
 
       player.lastShotDirection.subVectors(intersectPoint, player.position).normalize();
       player.lastShotDirection.y = 0;
+      
+      // Play shoot animation
+      player.playShootAnimation();
 
       setTimeout(() => {
         const shotCircle = player.createShotRangeCircle(scene, intersectPoint, SHOT_ACTIVE_COLOR, UI.getShotRadius());

@@ -31,6 +31,7 @@ class Player extends THREE.Mesh {
         this.siegeAction = null;
         this.siegeREAction = null;
         this.siegeDriveAction = null;
+        this.siegeShootAction = null;
         this.canMove = true;
         this.targetRotationY = this.rotation.y;
         this.rotorBone = null;
@@ -53,6 +54,7 @@ class Player extends THREE.Mesh {
             this.siegeAction = this.mixer.clipAction(animations.find(clip => clip.name === 'SiegeMode'));
             this.siegeREAction = this.mixer.clipAction(animations.find(clip => clip.name === 'SiegeModeRE'));
             this.siegeDriveAction = this.mixer.clipAction(animations.find(clip => clip.name === 'SiegeDrive'));
+            this.siegeShootAction = this.mixer.clipAction(animations.find(clip => clip.name === 'SiegeShoot'));
             if (this.siegeDriveAction) {
                 this.siegeDriveAction.setLoop(THREE.LoopRepeat);
                 this.siegeDriveAction.clampWhenFinished = false;
@@ -63,6 +65,11 @@ class Player extends THREE.Mesh {
                 action.clampWhenFinished = true;
                 action.enable = true;
             });
+            if (this.siegeShootAction) {
+                this.siegeShootAction.setLoop(THREE.LoopOnce);
+                this.siegeShootAction.clampWhenFinished = true;
+                this.siegeShootAction.enable = true;
+            }
             this.rotorBone = tank.getObjectByName("rotor");
         });
         scene.add(this);
@@ -327,6 +334,18 @@ class Player extends THREE.Mesh {
             this.updateRotorRotation(cursorWorld);
         } else {
             this.removeCursorIndicator(scene);
+        }
+    }
+
+    /**
+     * Plays the shoot animation once
+     */
+    playShootAnimation() {
+        if (this.siegeShootAction) {
+            // Stop any running instance of the animation
+            this.siegeShootAction.stop();
+            // Reset and play the animation
+            this.siegeShootAction.reset().play();
         }
     }
 
