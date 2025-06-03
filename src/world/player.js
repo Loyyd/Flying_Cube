@@ -123,6 +123,8 @@ class Player extends THREE.Mesh {
             }
             this.targetRotationY = currentRotationY + diff;
 
+            // No immediate physics body rotation here, it will be updated in the update method
+            
             if (this.siegeDriveAction) {
                 this.siegeDriveAction.paused = false;
                 if (!this.siegeDriveAction.isRunning()) {
@@ -303,8 +305,20 @@ class Player extends THREE.Mesh {
         this.move(deltaTime, keys, playerBody);
         this.updateActivationRangeRing();
 
+        // Update visual rotation
         this.targetQuaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), this.targetRotationY);
         this.quaternion.slerp(this.targetQuaternion, deltaTime * PLAYER_ROTATION_SPEED);
+
+        // Update physics body rotation to match visual rotation
+        const physicsQuaternion = new CANNON.Quaternion();
+        physicsQuaternion.copy(this.quaternion);
+        playerBody.quaternion.copy(physicsQuaternion);
+
+        // Update collision box helper
+        if (this.collisionBoxHelper) {
+            this.collisionBoxHelper.position.copy(playerBody.position);
+            this.collisionBoxHelper.quaternion.copy(this.quaternion);  // Use visual quaternion for smoother rotation
+        }
 
         if (this.isCombatMode) {
             this.createCursorIndicator(scene, cursorWorld);
@@ -312,12 +326,6 @@ class Player extends THREE.Mesh {
             this.updateRotorRotation(cursorWorld);
         } else {
             this.removeCursorIndicator(scene);
-        }
-        
-        // Update collision box helper position
-        if (this.collisionBoxHelper) {
-            this.collisionBoxHelper.position.copy(playerBody.position);
-            this.collisionBoxHelper.quaternion.copy(playerBody.quaternion);
         }
     }
 
