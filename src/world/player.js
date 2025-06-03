@@ -68,14 +68,15 @@ class Player extends THREE.Mesh {
         scene.add(this);
         
         // Add collision box visualization
-        const boxGeometry = new THREE.BoxGeometry(1.5, 1.4, 2.4); // Match physics body size
+        const boxGeometry = new THREE.BoxGeometry(1.5, 1.4, 2.4);
         const wireframeMaterial = new THREE.MeshBasicMaterial({
-            color: 0xff0000,     // Red color for physics body
+            color: 0xff0000,
             wireframe: true,
             transparent: true,
             opacity: 0.5
         });
         this.collisionBoxHelper = new THREE.Mesh(boxGeometry, wireframeMaterial);
+        this.collisionBoxHelper.visible = false;  // Set initially invisible
         scene.add(this.collisionBoxHelper);
     }
 
@@ -332,7 +333,8 @@ class Player extends THREE.Mesh {
     // Add method to toggle collision box visibility
     toggleCollisionBox(visible) {
         if (this.collisionBoxHelper) {
-            this.collisionBoxHelper.visible = visible;
+            this.collisionBoxHelper.visible = false;
+            this.collisionBoxHelper.material.opacity = 0;  // Also set opacity to 0 for extra measure
         }
     }
 }

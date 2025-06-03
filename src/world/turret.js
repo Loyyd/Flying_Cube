@@ -2,11 +2,10 @@ import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { defaultMaterial } from '../core/settings.js';
 import { GameState } from '../core/settings.js';
-import { UI } from '../ui/uiManager.js';
+import { UI, TURRET_COST } from '../ui/uiManager.js';
 import { Bullet } from './bullet.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-const TURRET_COST = 500;
 const TURRET_RANGE = 5;
 const TURRET_COOLDOWN = 0.8;
 const RING_THICKNESS = 0.15;

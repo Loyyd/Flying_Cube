@@ -13,6 +13,9 @@ class EnemySpawner {
     this.spawners = [];
     this.enemies = [];
 
+    this.spawnerTimer = 0;
+    this.spawnerInterval = 30; // 30 seconds
+
     // Create spawners at random positions
     for (let i = 0; i < NUM_BOXES; i++) {
       const position = new THREE.Vector3(
@@ -25,7 +28,24 @@ class EnemySpawner {
     }
   }
 
+  createSpawnerAtRandomPosition() {
+    const position = new THREE.Vector3(
+      Math.random() * 40 - 20,
+      BOX_SIZE / 2,
+      Math.random() * 40 - 20
+    );
+    const spawner = new Spawner(this.scene, this.world, this.player, position);
+    this.spawners.push(spawner);
+  }
+
   update(deltaTime) {
+    // Update spawner timer
+    this.spawnerTimer += deltaTime;
+    if (this.spawnerTimer >= this.spawnerInterval) {
+      this.createSpawnerAtRandomPosition();
+      this.spawnerTimer = 0;
+    }
+
     // Remove disposed enemies
     this.enemies = this.enemies.filter(enemy => !enemy._disposed);
     

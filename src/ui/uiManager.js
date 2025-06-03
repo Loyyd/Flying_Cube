@@ -5,16 +5,19 @@ const TEMPLATE_PATHS = {
 };
 
 //SHOTRADIUS
-const RadiusUpgradeCost = 200;
+const RadiusUpgradeCost = 100;
 const base_shot_radius = GameState.SHOT_RADIUS;
 const RADIUS_INCREASE_STEP = 0.5;
 const SHOT_RADIUS_MAX = 3.5;
 
 //COOLDOWN
-const CooldownUpgradeCost = 200;
+const CooldownUpgradeCost = 100;
 const MAX_COOLDOWN_LEVEL = 5;
 const COOLDOWN_REDUCTION_PER_LEVEL = 0.19;
 const MAX_COOLDOWN_REDUCTION = 1;
+
+//TURRET
+export const TURRET_COST = 250;
 
 
 
@@ -148,7 +151,7 @@ export class UIManager {
         
         // Update turret button state
         const placeCubeBtn = document.getElementById('place-cube-btn');
-        if (this.score < 500) {
+        if (this.score < TURRET_COST) {
             placeCubeBtn.classList.add('disabled');
         } else {
             placeCubeBtn.classList.remove('disabled');
