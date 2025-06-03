@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { vectorComponents } from 'three/webgpu';
 
 export class Bullet {
     constructor(position, direction, scene) {
@@ -8,7 +9,7 @@ export class Bullet {
         this.direction = direction.normalize();
         
         // Create simple bullet mesh
-        const geometry = new THREE.SphereGeometry(0.075, 8, 8); // Half the original size
+        const geometry = new THREE.SphereGeometry(0.1, 8, 8); // Half the original size
         const material = new THREE.MeshStandardMaterial({ 
             color: 0xff6600,
             metalness: 0.5,

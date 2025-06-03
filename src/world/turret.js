@@ -35,7 +35,9 @@ export class Turret {
         this.solidMaterial = new THREE.MeshStandardMaterial({
             color: 0x9292D0
         });
+        this.ROTATION_SPEED = 5; // Add this line
         this.placedTurrets = [];
+        this.lastAimedAngles = new Map(); // Store last rotation for each turret
         this.rangeGeometry = new THREE.RingGeometry(TURRET_RANGE - RING_THICKNESS, TURRET_RANGE, 64);
         this.rangeMaterial = new THREE.MeshBasicMaterial({
             color: 0x9292D0,
@@ -178,7 +180,8 @@ export class Turret {
             let closestDistance = TURRET_RANGE;
 
             enemies.forEach(enemy => {
-                if (enemy.isRigid) return;
+                // Skip dead enemies (dark red)
+                if (enemy.isRigid || enemy.timeSinceHit !== null) return;
                 
                 const distance = turret.mesh.position.distanceTo(enemy.mesh.position);
                 if (distance < closestDistance) {
@@ -187,18 +190,41 @@ export class Turret {
                 }
             });
 
+            // Get current angle and target angle
+            let currentAngle = turret.mesh.rotation.y % (Math.PI * 2);
+            let targetAngle;
+
+            if (closestEnemy) {
+                const direction = new THREE.Vector3()
+                    .subVectors(closestEnemy.mesh.position, turret.mesh.position)
+                    .normalize();
+                targetAngle = Math.atan2(direction.x, direction.z);
+                // Store the last aimed angle when we have a target
+                this.lastAimedAngles.set(turret, targetAngle);
+            } else {
+                // Use last aimed angle or current angle if no last angle exists
+                targetAngle = this.lastAimedAngles.get(turret) || currentAngle;
+            }
+
+            // Smooth rotation
+            let angleDiff = targetAngle - currentAngle;
+
+            // Handle angle wrap-around
+            if (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            if (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+            // Apply smooth rotation
+            turret.mesh.rotation.y += angleDiff * this.ROTATION_SPEED * deltaTime;
+
+            // Fire only if we have an enemy and are aimed correctly
             if (closestEnemy && currentTime - turret.lastShot >= TURRET_COOLDOWN) {
-                // Create direction vector to enemy
                 const direction = new THREE.Vector3()
                     .subVectors(closestEnemy.mesh.position, turret.mesh.position)
                     .normalize();
                 
-                // Rotate turret towards enemy
-                const angle = Math.atan2(direction.x, direction.z);
-                turret.mesh.rotation.y = angle;
-
                 // Create bullet at turret position
                 const bulletPos = turret.mesh.position.clone().add(direction.multiplyScalar(0.6));
+                bulletPos.y += 0.3; // Add this line to raise bullet spawn height
                 this.bullets.push(new Bullet(bulletPos, direction, this.scene));
                 
                 turret.lastShot = currentTime;
