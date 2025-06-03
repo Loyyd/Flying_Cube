@@ -49,12 +49,13 @@ class Enemy {
   }
 
   _getRandomWanderTarget() {
-    // Pick a random point within a 40x40 area, not too close to the player
+    // Pick a random point within a 40x40 area around current position
+    const range = 40;
     let target;
     do {
       target = {
-        x: Math.random() * 40 - 20,
-        z: Math.random() * 40 - 20
+        x: this.body.position.x + (Math.random() * range - range/2),
+        z: this.body.position.z + (Math.random() * range - range/2)
       };
     } while (
       Math.hypot(

@@ -37,7 +37,7 @@ export const ENEMY_SPEED = 1.0;
 export const ENEMY_WANDER_SPEED = 1;
 export const ENEMY_DARK_RED = 0x660000;
 export const ENEMY_CHASE_RADIUS = 8;
-export const ENEMY_WANDER_CHANGE_INTERVAL = 1;
+export const ENEMY_WANDER_CHANGE_INTERVAL = 5;
 
 // EnemySpawner settings
 export const ENEMY_BOX_SIZE = 1;

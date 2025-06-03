@@ -5,7 +5,7 @@ import { GameState } from '../core/settings.js';
 import { UI } from '../ui/uiManager.js';
 import { Bullet } from './bullet.js';
 
-const CUBE_COST = 50;
+const TURRET_COST = 500;
 const TURRET_RANGE = 5;
 const TURRET_COOLDOWN = 0.8;
 const RING_THICKNESS = 0.15;
@@ -39,7 +39,7 @@ export class Turret {
     }
 
     startDragging() {
-        if (GameState.score < CUBE_COST) return false;
+        if (GameState.score < TURRET_COST) return false;
         
         if (!this.previewCube) {
             this.previewCube = new THREE.Mesh(this.cubeGeometry, this.cubeMaterial);
@@ -64,7 +64,7 @@ export class Turret {
     }
 
     placeCube() {
-        if (!this.isDragging || !this.previewCube || GameState.score < CUBE_COST) return false;
+        if (!this.isDragging || !this.previewCube || GameState.score < TURRET_COST) return false;
         
         // Create physical cube
         const cube = new THREE.Mesh(this.cubeGeometry, this.solidCubeMaterial);
@@ -101,7 +101,7 @@ export class Turret {
         });
 
         // Deduct cost
-        UI.addScore(-CUBE_COST);
+        UI.addScore(-TURRET_COST);
         UI.updateScoreUI();
 
         // Reset preview
