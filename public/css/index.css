@@ -236,7 +236,3 @@ canvas {
     color: #2a2a2a;
     animation: pulse 1.5s infinite;
 }
-
-#place-cube-btn:active {
-    /* transform: translateX(-50%) scale(0.95); */
-}
