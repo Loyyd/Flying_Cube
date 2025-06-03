@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import Spawner from './spawner.js';
 import {
   ENEMY_BOX_SIZE as BOX_SIZE,
-  ENEMY_NUM_BOXES as NUM_BOXES
+  ENEMY_NUM_BOXES as NUM_BOXES,
+  MIN_SPAWNER_DISTANCE_FROM_PLAYER
 } from '../core/settings.js';
 
 class EnemySpawner {
@@ -16,26 +17,45 @@ class EnemySpawner {
     this.spawnerTimer = 0;
     this.spawnerInterval = 30; // 30 seconds
 
-    // Create spawners at random positions
-    for (let i = 0; i < NUM_BOXES; i++) {
+    // Create initial spawners with distance check
+    let attempts = 0;
+    while (this.spawners.length < NUM_BOXES && attempts < 100) {
       const position = new THREE.Vector3(
         Math.random() * 40 - 20,
         BOX_SIZE / 2,
         Math.random() * 40 - 20
       );
-      const spawner = new Spawner(scene, world, player, position);
-      this.spawners.push(spawner);
+      
+      if (position.distanceTo(player.position) >= MIN_SPAWNER_DISTANCE_FROM_PLAYER) {
+        const spawner = new Spawner(scene, world, player, position);
+        this.spawners.push(spawner);
+      }
+      attempts++;
     }
   }
 
   createSpawnerAtRandomPosition() {
-    const position = new THREE.Vector3(
-      Math.random() * 40 - 20,
-      BOX_SIZE / 2,
-      Math.random() * 40 - 20
+    let position;
+    let attempts = 0;
+    const maxAttempts = 50;
+
+    do {
+      position = new THREE.Vector3(
+        Math.random() * 40 - 20,
+        BOX_SIZE / 2,
+        Math.random() * 40 - 20
+      );
+      attempts++;
+    } while (
+      position.distanceTo(this.player.position) < MIN_SPAWNER_DISTANCE_FROM_PLAYER &&
+      attempts < maxAttempts
     );
-    const spawner = new Spawner(this.scene, this.world, this.player, position);
-    this.spawners.push(spawner);
+
+    // Only create spawner if we found a valid position
+    if (attempts < maxAttempts) {
+      const spawner = new Spawner(this.scene, this.world, this.player, position);
+      this.spawners.push(spawner);
+    }
   }
 
   update(deltaTime) {

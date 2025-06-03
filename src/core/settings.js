@@ -54,6 +54,7 @@ export const ENEMY_BOX_SIZE = 1;
 export const ENEMY_SPAWN_RADIUS = 2;
 export const ENEMY_NUM_BOXES = 4;
 export const ENEMY_SPAWN_INTERVAL_MS = 3000;
+export const MIN_SPAWNER_DISTANCE_FROM_PLAYER = 15;
 
 // Camera settings
 export const CAMERA_OFFSET_X = 0;
@@ -62,7 +63,7 @@ export const CAMERA_OFFSET_Z = 10;
 export const CAMERA_LERP_FACTOR = 0.05;
 
 // Game/scene settings
-export const GRID_SIZE = 100;
+export const GRID_SIZE = 75;
 export const PLAYER_SIZE = 1;
 export const SCENE_BACKGROUND_COLOR = 0x282c34;
 
