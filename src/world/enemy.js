@@ -39,18 +39,21 @@ class Enemy {
       const wingAnimation = gltf.animations.find(clip => clip.name === 'WING');
       const deadAnimation = gltf.animations.find(clip => clip.name === 'DEAD');
       
+      console.log('Available animations:', gltf.animations.map(a => a.name));
+      
       if (wingAnimation) {
         this.wingAction = this.mixer.clipAction(wingAnimation);
         this.wingAction.play();
-        // Add random time offset to animation
         this.wingAction.time = Math.random() * wingAnimation.duration;
-        this.wingAction.paused = true; // Start paused
+        this.wingAction.paused = true;
       }
       
       if (deadAnimation) {
         this.deadAction = this.mixer.clipAction(deadAnimation);
         this.deadAction.setLoop(THREE.LoopOnce);
         this.deadAction.clampWhenFinished = true;
+        // Initialize but don't play yet
+        this.deadAction.play().stop();
       }
     });
 
@@ -64,7 +67,6 @@ class Enemy {
     // Moderate damping to prevent excessive bouncing
     this.body.linearDamping = 0.1;
     this.body.angularDamping = 0.1;
-
     this.wanderTarget = this._getRandomWanderTarget();
     this.wanderTimer = 0;
     this.timeSinceHit = null;
@@ -165,22 +167,21 @@ class Enemy {
   hitByShot() {
     if (this.timeSinceHit !== null) return;
     
-    // Stop wing animation and play dead animation
-    if (this.wingAction) {
-      this.wingAction.stop();
-    }
-    if (this.deadAction) {
-      this.deadAction.reset().play();
+    // Stop all animations and play dead animation
+    if (this.mixer) {
+      this.mixer.stopAllAction();
+      
+      if (this.deadAction) {
+        console.log('Playing DEAD animation');
+        this.deadAction.reset();
+        this.deadAction.setEffectiveTimeScale(1);
+        this.deadAction.setEffectiveWeight(1);
+        this.deadAction.play();
+      }
     }
     
-    // Change color to dark red
-    if (this.model) {
-      this.model.traverse((child) => {
-        if (child.isMesh && child.material) {
-          child.material.color.setHex(DARK_RED);
-        }
-      });
-    }
+    // Start timer for disposal
+    this.timeSinceHit = 0;
     
     // Add impulse from shot
     const randomImpulse = new CANNON.Vec3(
@@ -189,9 +190,6 @@ class Enemy {
       (Math.random() - 0.5) * 10
     );
     this.body.applyImpulse(randomImpulse);
-    
-    // Start timer for disposal
-    this.timeSinceHit = 0;
   }
 
   dispose() {

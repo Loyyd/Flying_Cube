@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import Player from './world/player.js';
 import {
+  GOD_MODE,
   GameState,
   SHOT_RANGE,
   SHOT_EFFECT_DURATION_S,
@@ -12,7 +13,23 @@ import {
   PLAYER_SIZE,
   SCENE_BACKGROUND_COLOR,
   defaultMaterial,
-  defaultContactMaterial
+  defaultContactMaterial,
+  // Lighting constants
+  AMBIENT_LIGHT_COLOR,
+  AMBIENT_LIGHT_INTENSITY,
+  SUN_LIGHT_COLOR,
+  SUN_LIGHT_INTENSITY,
+  SUN_POSITION,
+  PLAYER_LIGHT_COLOR,
+  PLAYER_LIGHT_INTENSITY,
+  PLAYER_LIGHT_HEIGHT,
+  PLAYER_LIGHT_DISTANCE,
+  PLAYER_LIGHT_ANGLE,
+  PLAYER_LIGHT_PENUMBRA,
+  USE_ACCENT_LIGHTS,
+  ACCENT_LIGHT_COLOR,
+  ACCENT_LIGHT_INTENSITY,
+  ACCENT_LIGHT_DISTANCE
 } from './core/settings.js';
 import { Explosion } from './world/explosion.js';
 import CameraManager from './core/camera.js';
@@ -21,11 +38,13 @@ import EnemySpawner from './world/enemySpawner.js';
 import { UI } from './ui/uiManager.js';
 import { Turret } from './world/turret.js';
 
-
+if (GOD_MODE) {
+  GameState.score = 1000000;
+}
 // --- Scene & Renderer ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(SCENE_BACKGROUND_COLOR);
-scene.fog = new THREE.FogExp2(SCENE_BACKGROUND_COLOR, 0.01);
+scene.fog = new THREE.FogExp2(SCENE_BACKGROUND_COLOR, 0.015);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
@@ -51,31 +70,83 @@ function updateScoreUI() {
 }
 updateScoreUI();
 
-// --- Lighting ---
-scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
-directionalLight.position.set(GRID_SIZE * 0.3, GRID_SIZE * 0.8, GRID_SIZE * 0.2);
-directionalLight.castShadow = true;
-directionalLight.shadow.mapSize.width = 4096;
-directionalLight.shadow.mapSize.height = 4096;
-directionalLight.shadow.camera.near = 0.5;
-directionalLight.shadow.camera.far = GRID_SIZE * 2;
-directionalLight.shadow.camera.left = -GRID_SIZE / 1.5;
-directionalLight.shadow.camera.right = GRID_SIZE / 1.5;
-directionalLight.shadow.camera.top = GRID_SIZE / 1.5;
-directionalLight.shadow.camera.bottom = -GRID_SIZE / 1.5;
-scene.add(directionalLight);
-const pointLight = new THREE.PointLight(0xffaa33, 0.8, 50);
-pointLight.position.set(0, GRID_SIZE * 0.6, 0);
-pointLight.castShadow = true;
-scene.add(pointLight);
+// --- Lighting Setup ---
+// Clear any existing lights
+scene.children.forEach(child => {
+  if (child instanceof THREE.Light) {
+    scene.remove(child);
+  }
+});
+
+// Add ambient light - softer, more even illumination
+const ambientLight = new THREE.AmbientLight(AMBIENT_LIGHT_COLOR, AMBIENT_LIGHT_INTENSITY);
+scene.add(ambientLight);
+
+// Add sun-like directional light with shadows
+const sunLight = new THREE.DirectionalLight(SUN_LIGHT_COLOR, SUN_LIGHT_INTENSITY);
+sunLight.position.set(SUN_POSITION.x, SUN_POSITION.y, SUN_POSITION.z);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.width = 2048;
+sunLight.shadow.mapSize.height = 2048;
+sunLight.shadow.camera.near = 0.5;
+sunLight.shadow.camera.far = 500;
+sunLight.shadow.camera.left = -100;
+sunLight.shadow.camera.right = 100;
+sunLight.shadow.camera.top = 100;
+sunLight.shadow.camera.bottom = -100;
+sunLight.shadow.bias = -0.0003;
+scene.add(sunLight);
+
+// Create player spotlight that follows the player
+const playerLight = new THREE.SpotLight(
+  PLAYER_LIGHT_COLOR,
+  PLAYER_LIGHT_INTENSITY,
+  PLAYER_LIGHT_DISTANCE,
+  PLAYER_LIGHT_ANGLE,
+  PLAYER_LIGHT_PENUMBRA,
+  1
+);
+playerLight.position.set(0, PLAYER_LIGHT_HEIGHT, 0);
+playerLight.castShadow = true;
+playerLight.shadow.mapSize.width = 1024;
+playerLight.shadow.mapSize.height = 1024;
+playerLight.shadow.camera.near = 0.1;
+playerLight.shadow.camera.far = PLAYER_LIGHT_DISTANCE + 5;
+playerLight.target = new THREE.Object3D(); // Create target object
+scene.add(playerLight.target); // Add target to scene
+scene.add(playerLight);
+
+// Add accent lights if enabled
+const accentLights = [];
+if (USE_ACCENT_LIGHTS) {
+  // Add a few accent lights at different positions for atmosphere
+  const accentPositions = [
+    { x: 20, y: 2, z: 20 },
+    { x: -20, y: 2, z: 20 },
+    { x: 20, y: 2, z: -20 },
+    { x: -20, y: 2, z: -20 }
+  ];
+  
+  accentPositions.forEach(pos => {
+    const accentLight = new THREE.PointLight(
+      ACCENT_LIGHT_COLOR,
+      ACCENT_LIGHT_INTENSITY,
+      ACCENT_LIGHT_DISTANCE
+    );
+    accentLight.position.set(pos.x, pos.y, pos.z);
+    accentLight.castShadow = false; // No shadows for performance
+    scene.add(accentLight);
+    accentLights.push(accentLight);
+  });
+}
 
 // --- Ground ---
 const groundGeometry = new THREE.PlaneGeometry(GRID_SIZE, GRID_SIZE);
 const groundMaterial = new THREE.MeshStandardMaterial({
   color: 0x4a4a4a,
   roughness: 0.8,
-  metalness: 0.2
+  metalness: 0.2,
+  envMapIntensity: 0.5
 });
 const mainGround = new THREE.Mesh(groundGeometry, groundMaterial);
 mainGround.rotation.x = -Math.PI / 2;
@@ -239,64 +310,75 @@ const enemySpawner = new EnemySpawner(scene, world, player);
 
 // --- Animation Loop ---
 function animate() {
-  cameraManager.update();
-  requestAnimationFrame(animate);
-  const deltaTime = clock.getDelta();
-  world.step(1 / 60, deltaTime, 3);
-  player.update(deltaTime, keys, cursorWorld, scene, playerBody);
-  enemySpawner.update(deltaTime);
-  turret.updateDragPosition(raycaster);
-  turret.update(deltaTime, enemySpawner.enemies);  // Add this line
-  
-  // Enemy hit detection with active shots
-  for (const shot of activeShots) {
-    // Check spawner hits
-    for (const spawner of enemySpawner.spawners) {
-      const dist = spawner.mesh.position.distanceTo(shot.position);
-      if (dist <= GameState.SHOT_RADIUS) {
-        enemySpawner.hitBox(spawner);
-        if (!spawner.active) {
-          UI.addScore(50); // Bonus score for destroying a spawner
-        }
-      }
-    }
+    cameraManager.update();
+    requestAnimationFrame(animate);
+    const deltaTime = clock.getDelta();
+    world.step(1 / 60, deltaTime, 3);
     
-    // Check enemy hits
-    for (const enemy of enemySpawner.enemies) {
-      if (!enemy.isRigid) {
-        const dist = enemy.mesh.position.distanceTo(shot.position);
+    // Update player light to follow player smoothly
+    const targetLightPosition = new THREE.Vector3(
+        player.position.x,
+        PLAYER_LIGHT_HEIGHT,
+        player.position.z
+    );
+    playerLight.position.lerp(targetLightPosition, 0.1);
+    playerLight.target.position.lerp(player.position, 0.1);
+    playerLight.target.updateMatrixWorld();
+    
+    player.update(deltaTime, keys, cursorWorld, scene, playerBody);
+    enemySpawner.update(deltaTime);
+    turret.updateDragPosition(raycaster);
+    turret.update(deltaTime, enemySpawner.enemies);
+  
+    // Enemy hit detection with active shots
+    for (const shot of activeShots) {
+      // Check spawner hits
+      for (const spawner of enemySpawner.spawners) {
+        const dist = spawner.mesh.position.distanceTo(shot.position);
         if (dist <= GameState.SHOT_RADIUS) {
-          enemy.hitByShot();
-          UI.addScore(10);
+          enemySpawner.hitBox(spawner);
+          if (!spawner.active) {
+            UI.addScore(50); // Bonus score for destroying a spawner
+          }
+        }
+      }
+      
+      // Check enemy hits
+      for (const enemy of enemySpawner.enemies) {
+        if (!enemy.isRigid) {
+          const dist = enemy.mesh.position.distanceTo(shot.position);
+          if (dist <= GameState.SHOT_RADIUS) {
+            enemy.hitByShot();
+            UI.addScore(10);
+          }
         }
       }
     }
-  }
 
-  if (shotCooldownTimer > 0) {
-    shotCooldownTimer -= deltaTime;
-    UI.updateCooldownCircle(1 - shotCooldownTimer / UI.getCurrentCooldown(SHOT_COOLDOWN_S));
-    if (shotCooldownTimer <= 0) {
-      canShoot = true;
-      shotCooldownTimer = 0;
-      UI.updateCooldownCircle(1);
+    if (shotCooldownTimer > 0) {
+      shotCooldownTimer -= deltaTime;
+      UI.updateCooldownCircle(1 - shotCooldownTimer / UI.getCurrentCooldown(SHOT_COOLDOWN_S));
+      if (shotCooldownTimer <= 0) {
+        canShoot = true;
+        shotCooldownTimer = 0;
+        UI.updateCooldownCircle(1);
+      }
     }
-  }
 
-  updateActiveShots();
-  player.position.copy(playerBody.position);
-  obstacleManager.synchronizeObstacles();
+    updateActiveShots();
+    player.position.copy(playerBody.position);
+    obstacleManager.synchronizeObstacles();
 
-  for (let i = explosions.length - 1; i >= 0; i--) {
-    explosions[i].update(deltaTime);
-    if (explosions[i].isFinished()) {
-      explosions[i].dispose();
-      explosions.splice(i, 1);
+    for (let i = explosions.length - 1; i >= 0; i--) {
+      explosions[i].update(deltaTime);
+      if (explosions[i].isFinished()) {
+        explosions[i].dispose();
+        explosions.splice(i, 1);
+      }
     }
-  }
 
-  renderer.render(scene, camera);
-  renderer.setClearColor(0x1e1e1e);
+    renderer.render(scene, camera);
+    renderer.setClearColor(SCENE_BACKGROUND_COLOR);
 }
 
 // --- Window Resize ---

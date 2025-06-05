@@ -1,6 +1,9 @@
+export const GOD_MODE = true;
+
 // Game State
 export const GameState = {
-    score: 2000,
+  
+    score: 0,
     SHOT_RADIUS: 1,
 
     // Add method to safely update score
@@ -65,7 +68,30 @@ export const CAMERA_LERP_FACTOR = 0.05;
 // Game/scene settings
 export const GRID_SIZE = 75;
 export const PLAYER_SIZE = 1;
-export const SCENE_BACKGROUND_COLOR = 0x282c34;
+export const SCENE_BACKGROUND_COLOR = 0x000811;
+
+// Lighting settings
+export const AMBIENT_LIGHT_COLOR = 0x404050;  // Subtle bluish ambient
+export const AMBIENT_LIGHT_INTENSITY = 0.4;   // Lower ambient intensity for contrast
+
+// Main directional light (sun-like)
+export const SUN_LIGHT_COLOR = 0xffffb3;      // Warm sunlight color
+export const SUN_LIGHT_INTENSITY = 2;       // Moderate intensity
+export const SUN_POSITION = { x: 50, y: 100, z: 50 };
+
+// Player spotlight
+export const PLAYER_LIGHT_COLOR = 0xa3c2ff;   // Slightly blue tint for player light
+export const PLAYER_LIGHT_INTENSITY = 6;      // Higher intensity for player spotlight
+export const PLAYER_LIGHT_HEIGHT = 8;         // Lower height for more dramatic shadows
+export const PLAYER_LIGHT_DISTANCE = 20;      // Moderate distance for better focus
+export const PLAYER_LIGHT_ANGLE = Math.PI / 6; // Narrower angle for more focused light
+export const PLAYER_LIGHT_PENUMBRA = 0.8;     // Soft edge
+
+// Additional accent lights
+export const USE_ACCENT_LIGHTS = true;        // Toggle accent lights
+export const ACCENT_LIGHT_COLOR = 0xff5500;   // Orange-red accent
+export const ACCENT_LIGHT_INTENSITY = 4;      // Low intensity for accent
+export const ACCENT_LIGHT_DISTANCE = 25;      // Short distance for accents
 
 // --- Physics Material ---
 import * as CANNON from 'cannon-es';
