@@ -31,6 +31,7 @@ class Enemy {
     loader.load('/assets/enemy.glb', (gltf) => {
       this.model = gltf.scene;
       this.model.scale.set(0.4, 0.4, 0.4);
+      this.model.rotation.y = Math.PI; // Make model face forward initially
       this.mesh.add(this.model);
 
       // Setup animations
@@ -154,13 +155,17 @@ class Enemy {
     // Set velocity directly for movement
     this.body.velocity.x = targetVelX;
     this.body.velocity.z = targetVelZ;
-    // Keep Y velocity as is to allow for physics interactions
     
-    // Update visual position
+    // Update only position from physics, handle rotation separately
     this.mesh.position.copy(this.body.position);
-    this.mesh.quaternion.copy(this.body.quaternion);
+    
+    // Rotate model to face movement direction
+    if (Math.abs(targetVelX) > 0.01 || Math.abs(targetVelZ) > 0.01) {
+      const angle = Math.atan2(targetVelX, targetVelZ);
+      this.mesh.rotation.y = angle;
+    }
 
-    // Update collision helper position
+    // Update collision helper position only
     if (this.collisionHelper) {
       this.collisionHelper.position.copy(this.body.position);
     }
