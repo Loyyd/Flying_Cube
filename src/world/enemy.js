@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { SHOT_RANGE } from './player.js';
 import {
   ENEMY_RADIUS,
@@ -16,12 +17,29 @@ class Enemy {
     this.scene = scene;
     this.world = world;
     this.player = player;
+    this.mixer = null;
+    this.model = null;
 
-    // Visual
-    const geometry = new THREE.BoxGeometry(ENEMY_RADIUS * 2, ENEMY_RADIUS * 2, ENEMY_RADIUS * 2);
-    const material = new THREE.MeshStandardMaterial({ color: 0x800080, roughness: 0.8, metalness: 0.2 });
-    this.mesh = new THREE.Mesh(geometry, material);
+    // Create a temporary invisible mesh
+    const tempGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+    const tempMaterial = new THREE.MeshBasicMaterial({ visible: false });
+    this.mesh = new THREE.Mesh(tempGeometry, tempMaterial);
     this.scene.add(this.mesh);
+
+    // Load the model
+    const loader = new GLTFLoader();
+    loader.load('/assets/enemy.glb', (gltf) => {
+      this.model = gltf.scene;
+      this.model.scale.set(0.3, 0.3, 0.3);
+      this.mesh.add(this.model);
+
+      // Setup animations
+      this.mixer = new THREE.AnimationMixer(this.model);
+      if (gltf.animations.length > 0) {
+        const idleAction = this.mixer.clipAction(gltf.animations[0]);
+        idleAction.play();
+      }
+    });
 
     // Physics
     const shape = new CANNON.Box(new CANNON.Vec3(ENEMY_RADIUS, ENEMY_RADIUS, ENEMY_RADIUS));
@@ -58,6 +76,10 @@ class Enemy {
   }
 
   update(deltaTime) {
+    if (this.mixer) {
+      this.mixer.update(deltaTime);
+    }
+
     if (this.timeSinceHit !== null) {
       this.timeSinceHit += deltaTime;
       if (this.timeSinceHit >= 5) {
@@ -116,8 +138,12 @@ class Enemy {
     if (this.timeSinceHit !== null) return;
     
     // Change color to dark red
-    if (this.mesh.material) {
-      this.mesh.material.color.setHex(DARK_RED);
+    if (this.model) {
+      this.model.traverse((child) => {
+        if (child.isMesh && child.material) {
+          child.material.color.setHex(DARK_RED);
+        }
+      });
     }
     
     // Add impulse from shot
@@ -136,6 +162,16 @@ class Enemy {
     if (this._disposed) return;
     this.scene.remove(this.mesh);
     this.world.removeBody(this.body);
+    
+    if (this.model) {
+      this.model.traverse((child) => {
+        if (child.isMesh) {
+          if (child.geometry) child.geometry.dispose();
+          if (child.material) child.material.dispose();
+        }
+      });
+    }
+    
     if (this.mesh.geometry) this.mesh.geometry.dispose();
     if (this.mesh.material) this.mesh.material.dispose();
     this._disposed = true;
