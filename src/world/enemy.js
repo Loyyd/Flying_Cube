@@ -30,22 +30,32 @@ class Enemy {
     const loader = new GLTFLoader();
     loader.load('/assets/enemy.glb', (gltf) => {
       this.model = gltf.scene;
-      this.model.scale.set(0.3, 0.3, 0.3);
+      this.model.scale.set(0.4, 0.4, 0.4);
       this.mesh.add(this.model);
 
       // Setup animations
       this.mixer = new THREE.AnimationMixer(this.model);
-      if (gltf.animations.length > 0) {
-        const idleAction = this.mixer.clipAction(gltf.animations[0]);
-        idleAction.play();
+      const wingAnimation = gltf.animations.find(clip => clip.name === 'WING');
+      const deadAnimation = gltf.animations.find(clip => clip.name === 'DEAD');
+      
+      if (wingAnimation) {
+        this.wingAction = this.mixer.clipAction(wingAnimation);
+        this.wingAction.play();
+        this.wingAction.paused = true; // Start paused
+      }
+      
+      if (deadAnimation) {
+        this.deadAction = this.mixer.clipAction(deadAnimation);
+        this.deadAction.setLoop(THREE.LoopOnce);
+        this.deadAction.clampWhenFinished = true;
       }
     });
 
-    // Physics
-    const shape = new CANNON.Box(new CANNON.Vec3(ENEMY_RADIUS, ENEMY_RADIUS, ENEMY_RADIUS));
+    // Physics - Changed to sphere
+    const shape = new CANNON.Sphere(ENEMY_RADIUS);
     this.body = new CANNON.Body({ mass: 1, material: defaultMaterial });
     this.body.addShape(shape);
-    this.body.position.set(0, ENEMY_RADIUS, 0);
+    this.body.position.set(0, ENEMY_RADIUS * 2, 0); // Raised position to stand
     this.world.addBody(this.body);
     
     // Moderate damping to prevent excessive bouncing
@@ -55,6 +65,18 @@ class Enemy {
     this.wanderTarget = this._getRandomWanderTarget();
     this.wanderTimer = 0;
     this.timeSinceHit = null;
+
+    // Add collision sphere visualization
+    const sphereGeometry = new THREE.SphereGeometry(ENEMY_RADIUS, 16, 16);
+    const wireframeMaterial = new THREE.MeshBasicMaterial({
+      color: 0xff0000,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.5
+    });
+    this.collisionHelper = new THREE.Mesh(sphereGeometry, wireframeMaterial);
+    this.collisionHelper.visible = true;  // Set initially visible
+    scene.add(this.collisionHelper);
   }
 
   _getRandomWanderTarget() {
@@ -86,6 +108,11 @@ class Enemy {
         this.dispose();
         this._disposed = true;
         return;
+      }
+      
+      // Stop animation when hit
+      if (this.wingAction) {
+        this.wingAction.paused = true;
       }
       
       // When hit, just update visual position
@@ -132,10 +159,29 @@ class Enemy {
     // Update visual position
     this.mesh.position.copy(this.body.position);
     this.mesh.quaternion.copy(this.body.quaternion);
+
+    // Update collision helper position
+    if (this.collisionHelper) {
+      this.collisionHelper.position.copy(this.body.position);
+    }
+
+    // Check if moving and update animation state
+    const isMoving = Math.abs(targetVelX) > 0.01 || Math.abs(targetVelZ) > 0.01;
+    if (this.wingAction) {
+      this.wingAction.paused = !isMoving;
+    }
   }
 
   hitByShot() {
     if (this.timeSinceHit !== null) return;
+    
+    // Stop wing animation and play dead animation
+    if (this.wingAction) {
+      this.wingAction.stop();
+    }
+    if (this.deadAction) {
+      this.deadAction.reset().play();
+    }
     
     // Change color to dark red
     if (this.model) {
@@ -174,7 +220,20 @@ class Enemy {
     
     if (this.mesh.geometry) this.mesh.geometry.dispose();
     if (this.mesh.material) this.mesh.material.dispose();
+    
+    if (this.collisionHelper) {
+      this.scene.remove(this.collisionHelper);
+      this.collisionHelper.geometry.dispose();
+      this.collisionHelper.material.dispose();
+    }
+    
     this._disposed = true;
+  }
+
+  toggleCollisionBox(visible) {
+    if (this.collisionHelper) {
+      this.collisionHelper.visible = visible;
+    }
   }
 }
 
