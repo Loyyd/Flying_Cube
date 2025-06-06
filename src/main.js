@@ -15,21 +15,9 @@ import {
   defaultMaterial,
   defaultContactMaterial,
   // Lighting constants
-  AMBIENT_LIGHT_COLOR,
-  AMBIENT_LIGHT_INTENSITY,
   SUN_LIGHT_COLOR,
   SUN_LIGHT_INTENSITY,
-  SUN_POSITION,
-  PLAYER_LIGHT_COLOR,
-  PLAYER_LIGHT_INTENSITY,
-  PLAYER_LIGHT_HEIGHT,
-  PLAYER_LIGHT_DISTANCE,
-  PLAYER_LIGHT_ANGLE,
-  PLAYER_LIGHT_PENUMBRA,
-  USE_ACCENT_LIGHTS,
-  ACCENT_LIGHT_COLOR,
-  ACCENT_LIGHT_INTENSITY,
-  ACCENT_LIGHT_DISTANCE
+  SUN_POSITION
 } from './core/settings.js';
 import { Explosion } from './world/explosion.js';
 import CameraManager from './core/camera.js';
@@ -78,11 +66,7 @@ scene.children.forEach(child => {
   }
 });
 
-// Add ambient light - softer, more even illumination
-const ambientLight = new THREE.AmbientLight(AMBIENT_LIGHT_COLOR, AMBIENT_LIGHT_INTENSITY);
-scene.add(ambientLight);
-
-// Add sun-like directional light with shadows
+// Add strong sunlight (less yellowish)
 const sunLight = new THREE.DirectionalLight(SUN_LIGHT_COLOR, SUN_LIGHT_INTENSITY);
 sunLight.position.set(SUN_POSITION.x, SUN_POSITION.y, SUN_POSITION.z);
 sunLight.castShadow = true;
@@ -96,49 +80,6 @@ sunLight.shadow.camera.top = 100;
 sunLight.shadow.camera.bottom = -100;
 sunLight.shadow.bias = -0.0003;
 scene.add(sunLight);
-
-// Create player spotlight that follows the player
-const playerLight = new THREE.SpotLight(
-  PLAYER_LIGHT_COLOR,
-  PLAYER_LIGHT_INTENSITY,
-  PLAYER_LIGHT_DISTANCE,
-  PLAYER_LIGHT_ANGLE,
-  PLAYER_LIGHT_PENUMBRA,
-  1
-);
-playerLight.position.set(0, PLAYER_LIGHT_HEIGHT, 0);
-playerLight.castShadow = true;
-playerLight.shadow.mapSize.width = 1024;
-playerLight.shadow.mapSize.height = 1024;
-playerLight.shadow.camera.near = 0.1;
-playerLight.shadow.camera.far = PLAYER_LIGHT_DISTANCE + 5;
-playerLight.target = new THREE.Object3D(); // Create target object
-scene.add(playerLight.target); // Add target to scene
-scene.add(playerLight);
-
-// Add accent lights if enabled
-const accentLights = [];
-if (USE_ACCENT_LIGHTS) {
-  // Add a few accent lights at different positions for atmosphere
-  const accentPositions = [
-    { x: 20, y: 2, z: 20 },
-    { x: -20, y: 2, z: 20 },
-    { x: 20, y: 2, z: -20 },
-    { x: -20, y: 2, z: -20 }
-  ];
-  
-  accentPositions.forEach(pos => {
-    const accentLight = new THREE.PointLight(
-      ACCENT_LIGHT_COLOR,
-      ACCENT_LIGHT_INTENSITY,
-      ACCENT_LIGHT_DISTANCE
-    );
-    accentLight.position.set(pos.x, pos.y, pos.z);
-    accentLight.castShadow = false; // No shadows for performance
-    scene.add(accentLight);
-    accentLights.push(accentLight);
-  });
-}
 
 // --- Ground ---
 const groundGeometry = new THREE.PlaneGeometry(GRID_SIZE, GRID_SIZE);
@@ -314,16 +255,6 @@ function animate() {
     requestAnimationFrame(animate);
     const deltaTime = clock.getDelta();
     world.step(1 / 60, deltaTime, 3);
-    
-    // Update player light to follow player smoothly
-    const targetLightPosition = new THREE.Vector3(
-        player.position.x,
-        PLAYER_LIGHT_HEIGHT,
-        player.position.z
-    );
-    playerLight.position.lerp(targetLightPosition, 0.1);
-    playerLight.target.position.lerp(player.position, 0.1);
-    playerLight.target.updateMatrixWorld();
     
     player.update(deltaTime, keys, cursorWorld, scene, playerBody);
     enemySpawner.update(deltaTime);
