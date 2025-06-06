@@ -28,6 +28,8 @@ class EnemySpawner {
       
       if (position.distanceTo(player.position) >= MIN_SPAWNER_DISTANCE_FROM_PLAYER) {
         const spawner = new Spawner(scene, world, player, position);
+        spawner._spawnTimer = 0;
+        spawner._spawnInterval = 3 + Math.random() * 5;
         this.spawners.push(spawner);
       }
       attempts++;
@@ -76,9 +78,13 @@ class EnemySpawner {
 
     // Track spawned enemies from all spawners
     for (const spawner of this.spawners) {
-      const enemy = spawner.spawnEnemy();
-      if (enemy) {
-        this.enemies.push(enemy);
+      spawner._spawnTimer += deltaTime;
+      if (spawner._spawnTimer >= spawner._spawnInterval) {
+        spawner._spawnTimer = 0;
+        const enemy = spawner.spawnEnemy();
+        if (enemy) {
+          this.enemies.push(enemy);
+        }
       }
     }
   }

@@ -34,8 +34,8 @@ export const EXPLOSION_DELAY_S = 0.3;
 export const RING_THICKNESS = 0.15;
 export const RING_OPACITY = 0.4;
 export const CURSOR_INDICATOR_RADIUS = 0.5;
-export const CURSOR_INDICATOR_SEGMENTS = 16;
-export const CURSOR_INDICATOR_OPACITY = 0.8;
+export const CURSOR_INDICATOR_SEGMENTS = 32;
+export const CURSOR_INDICATOR_OPACITY = 0.4;
 
 // Obstacle settings
 export const OBSTACLE1_COLOR = "#00FF00";
@@ -46,17 +46,17 @@ export const NUM_RANDOM_OBSTACLES = 50;
 
 // Enemy settings
 export const ENEMY_RADIUS = 0.5;
-export const ENEMY_SPEED = 1.0;
+export const ENEMY_SPEED = 0.7;
 export const ENEMY_WANDER_SPEED = 1;
 export const ENEMY_DARK_RED = 0x660000;
-export const ENEMY_CHASE_RADIUS = 8;
+export const ENEMY_CHASE_RADIUS = 9;
 export const ENEMY_WANDER_CHANGE_INTERVAL = 5;
 
 // EnemySpawner settings
 export const ENEMY_BOX_SIZE = 1;
-export const ENEMY_SPAWN_RADIUS = 2;
-export const ENEMY_NUM_BOXES = 4;
-export const ENEMY_SPAWN_INTERVAL_MS = 3000;
+export const ENEMY_SPAWN_RADIUS = 2.5;
+export const ENEMY_NUM_BOXES = 3;
+export const ENEMY_SPAWN_INTERVAL_MS = 5000;
 export const MIN_SPAWNER_DISTANCE_FROM_PLAYER = 15;
 
 // Camera settings
