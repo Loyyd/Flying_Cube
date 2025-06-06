@@ -56,6 +56,8 @@ class EnemySpawner {
     // Only create spawner if we found a valid position
     if (attempts < maxAttempts) {
       const spawner = new Spawner(this.scene, this.world, this.player, position);
+      spawner._spawnTimer = 0; // Initialize spawn timer
+      spawner._spawnInterval = 3 + Math.random() * 5; // Randomize spawn interval
       this.spawners.push(spawner);
     }
   }

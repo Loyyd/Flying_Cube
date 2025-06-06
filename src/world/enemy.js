@@ -39,8 +39,6 @@ class Enemy {
       const wingAnimation = gltf.animations.find(clip => clip.name === 'WING');
       const deadAnimation = gltf.animations.find(clip => clip.name === 'DEAD');
       
-      console.log('Available animations:', gltf.animations.map(a => a.name));
-      
       if (wingAnimation) {
         this.wingAction = this.mixer.clipAction(wingAnimation);
         this.wingAction.play();
@@ -61,12 +59,21 @@ class Enemy {
     const shape = new CANNON.Sphere(ENEMY_RADIUS);
     this.body = new CANNON.Body({ mass: 1, material: defaultMaterial });
     this.body.addShape(shape);
-    this.body.position.set(0, ENEMY_RADIUS * 2, 0); // Raised position to stand
+    this.body.position.set(0, ENEMY_RADIUS * 2, 0);
     this.world.addBody(this.body);
     
-    // Moderate damping to prevent excessive bouncing
     this.body.linearDamping = 0.1;
     this.body.angularDamping = 0.1;
+    
+    // Create a circular shadow below the enemy
+    this.shadow = new THREE.Mesh(
+      new THREE.CircleGeometry(ENEMY_RADIUS * 0.7, 32),
+      new THREE.MeshBasicMaterial({ color: 0x000000, opacity: 0.5, transparent: true })
+    );
+    this.shadow.rotation.x = -Math.PI / 2;
+    this.shadow.position.set(this.body.position.x, 0.05, this.body.position.z);
+    this.scene.add(this.shadow);
+    
     this.wanderTarget = this._getRandomWanderTarget();
     this.wanderTimer = 0;
     this.timeSinceHit = null;
@@ -94,10 +101,22 @@ class Enemy {
     if (this.mixer) {
       this.mixer.update(deltaTime);
     }
-
+    
+    // Update shadow position to always be below the enemy
+    if (this.shadow) {
+      this.shadow.position.set(this.body.position.x, 0.05, this.body.position.z);
+    }
+    
     if (this.timeSinceHit !== null) {
       this.timeSinceHit += deltaTime;
       if (this.timeSinceHit >= 5) {
+        // Remove shadow when disposing
+        if (this.shadow) {
+          this.scene.remove(this.shadow);
+          if (this.shadow.geometry) this.shadow.geometry.dispose();
+          if (this.shadow.material) this.shadow.material.dispose();
+          this.shadow = null;
+        }
         this.dispose();
         this._disposed = true;
         return;
@@ -166,28 +185,34 @@ class Enemy {
 
   hitByShot() {
     if (this.timeSinceHit !== null) return;
-    
+
+    // Remove shadow when hit
+    if (this.shadow) {
+        this.scene.remove(this.shadow);
+        if (this.shadow.geometry) this.shadow.geometry.dispose();
+        if (this.shadow.material) this.shadow.material.dispose();
+        this.shadow = null;
+    }
+
     // Stop all animations and play dead animation
     if (this.mixer) {
-      this.mixer.stopAllAction();
-      
-      if (this.deadAction) {
-        console.log('Playing DEAD animation');
-        this.deadAction.reset();
-        this.deadAction.setEffectiveTimeScale(1);
-        this.deadAction.setEffectiveWeight(1);
-        this.deadAction.play();
-      }
+        this.mixer.stopAllAction();
+        if (this.deadAction) {
+            this.deadAction.reset();
+            this.deadAction.setEffectiveTimeScale(1);
+            this.deadAction.setEffectiveWeight(1);
+            this.deadAction.play();
+        }
     }
-    
+
     // Start timer for disposal
     this.timeSinceHit = 0;
-    
+
     // Add impulse from shot
     const randomImpulse = new CANNON.Vec3(
-      (Math.random() - 0.5) * 10,
-      5,
-      (Math.random() - 0.5) * 10
+        (Math.random() - 0.5) * 10,
+        5,
+        (Math.random() - 0.5) * 10
     );
     this.body.applyImpulse(randomImpulse);
   }
@@ -196,6 +221,13 @@ class Enemy {
     if (this._disposed) return;
     this.scene.remove(this.mesh);
     this.world.removeBody(this.body);
+    
+    // Remove and dispose shadow
+    if (this.shadow) {
+      this.scene.remove(this.shadow);
+      if (this.shadow.geometry) this.shadow.geometry.dispose();
+      if (this.shadow.material) this.shadow.material.dispose();
+    }
     
     if (this.model) {
       this.model.traverse((child) => {
