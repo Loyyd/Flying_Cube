@@ -13,6 +13,7 @@ import {
   EXPLOSION_DELAY_S,
   GRID_SIZE,
   PLAYER_SIZE,
+  PLAYER_BOX_HALF_EXTENTS, // Import the new constant
   SCENE_BACKGROUND_COLOR,
   defaultMaterial,
   defaultContactMaterial,
@@ -118,7 +119,8 @@ obstacleManager.initializeObstacles();
 // --- Player ---
 const player = new Player();
 player.loadModel(scene);
-const playerShape = new CANNON.Box(new CANNON.Vec3(PLAYER_SIZE * 1.3, PLAYER_SIZE, PLAYER_SIZE * 1.3));
+// Use the new constant for the player shape
+const playerShape = new CANNON.Box(PLAYER_BOX_HALF_EXTENTS);
 // Update player body configuration
 const playerBody = new CANNON.Body({ 
     type: CANNON.Body.KINEMATIC, 
@@ -312,15 +314,15 @@ function createExplosion(position) {
         UI.addScore(50);
       }
     }
-  }
   
-  // Check enemy hits
-  for (const enemy of enemySpawner.enemies) {
-    if (!enemy.isRigid) {
-      const dist = enemy.mesh.position.distanceTo(position);
-      if (dist <= GameState.SHOT_RADIUS) {
-        enemy.hitByShot();
-        UI.addScore(10);
+    // Check enemy hits
+    for (const enemy of enemySpawner.enemies) {
+      if (!enemy.isRigid) {
+        const dist = enemy.mesh.position.distanceTo(position);
+        if (dist <= GameState.SHOT_RADIUS) {
+          enemy.hitByShot();
+          UI.addScore(10);
+        }
       }
     }
   }

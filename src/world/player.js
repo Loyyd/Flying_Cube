@@ -12,13 +12,14 @@ import {
     RING_THICKNESS,
     RING_OPACITY,
     CURSOR_INDICATOR_SEGMENTS,
-    CURSOR_INDICATOR_OPACITY
+    CURSOR_INDICATOR_OPACITY,
+    PLAYER_BOX_HALF_EXTENTS // Import PLAYER_BOX_HALF_EXTENTS
 } from '../core/settings.js';
 import { UI } from '../ui/uiManager.js';
 import { debug } from 'three/tsl';
 
 class Player extends THREE.Mesh {
-    constructor(initialPosition = new THREE.Vector3(0, 0, 0)) {
+    constructor(initialPosition = new THREE.Vector3(0, 3, 0)) {
         super();
         this.speed = PLAYER_SPEED;
         this.isCombatMode = false;
@@ -74,8 +75,12 @@ class Player extends THREE.Mesh {
         });
         scene.add(this);
         
-        // Add collision box visualization
-        const boxGeometry = new THREE.BoxGeometry(1.5, 1.4, 2.4);
+        // Add collision box visualization using PLAYER_BOX_HALF_EXTENTS
+        const boxGeometry = new THREE.BoxGeometry(
+            PLAYER_BOX_HALF_EXTENTS.x * 2,
+            PLAYER_BOX_HALF_EXTENTS.y * 2,
+            PLAYER_BOX_HALF_EXTENTS.z * 2
+        );
         const wireframeMaterial = new THREE.MeshBasicMaterial({
             color: 0xff0000,
             wireframe: true,
@@ -84,7 +89,8 @@ class Player extends THREE.Mesh {
         });
         this.collisionBoxHelper = new THREE.Mesh(boxGeometry, wireframeMaterial);
         this.collisionBoxHelper.visible = false;  // Set initially invisible
-        scene.add(this.collisionBoxHelper);
+        // Add the helper to the player mesh itself so it inherits transformations
+        this.add(this.collisionBoxHelper); 
     }
 
     /**
@@ -322,11 +328,22 @@ class Player extends THREE.Mesh {
         physicsQuaternion.copy(this.quaternion);
         playerBody.quaternion.copy(physicsQuaternion);
 
-        // Update collision box helper
-        if (this.collisionBoxHelper) {
-            this.collisionBoxHelper.position.copy(playerBody.position);
-            this.collisionBoxHelper.quaternion.copy(this.quaternion);  // Use visual quaternion for smoother rotation
-        }
+        // Update collision box helper position and rotation
+        // Since it's now a child of the player mesh, its position/rotation is relative
+        // and will be correctly transformed with the parent.
+        // We just need to ensure its local position/rotation is identity if it's meant to perfectly overlay the physics body.
+        // However, the physics body's position is what player.position is synced to.
+        // The collisionBoxHelper was previously added to the scene directly.
+        // If it's a child of `this` (the Player mesh), its world position will be `this.position` + `this.quaternion * this.collisionBoxHelper.position`.
+        // For it to align with `playerBody.position` (which `this.position` is set to),
+        // its local position should be (0,0,0) and local quaternion identity, assuming the Player mesh's origin is the physics body's origin.
+
+        // The line `this.collisionBoxHelper.position.copy(playerBody.position);`
+        // and `this.collisionBoxHelper.quaternion.copy(this.quaternion);`
+        // are no longer needed here if the helper is a child of `this` (Player mesh)
+        // and `this` (Player mesh) is correctly synced with `playerBody`.
+        // The `player.position.copy(playerBody.position);` happens in main.js.
+        // The `this.quaternion.slerp(...)` updates the Player mesh's rotation.
 
         if (this.isCombatMode) {
             this.createCursorIndicator(scene, cursorWorld);

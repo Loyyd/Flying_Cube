@@ -10,7 +10,10 @@ import {
   ENEMY_CHASE_RADIUS as CHASE_RADIUS,
   ENEMY_WANDER_CHANGE_INTERVAL as WANDER_CHANGE_INTERVAL,
   defaultMaterial,
-  DEBUG_MODE
+  DEBUG_MODE,
+  GOD_MODE,
+  PLAYER_SIZE,
+  PLAYER_BOX_HALF_EXTENTS
 } from '../core/settings.js';
 
 class Enemy {
@@ -155,9 +158,29 @@ class Enemy {
     const distToPlayer = Math.sqrt(dx * dx + dz * dz);
 
     // Check if enemy collided with player
-    if (distToPlayer < ENEMY_RADIUS + 1.2) { // 1 is an approximation for player radius
+    // AABB collision check
+    const playerPos = this.player.position;
+    const enemyPos = this.body.position;
+
+    // Find closest point on box to sphere center
+    const closestPoint = new CANNON.Vec3(
+      Math.min(Math.max(enemyPos.x, playerPos.x - PLAYER_BOX_HALF_EXTENTS.x), playerPos.x + PLAYER_BOX_HALF_EXTENTS.x),
+      Math.min(Math.max(enemyPos.y, playerPos.y - PLAYER_BOX_HALF_EXTENTS.y), playerPos.y + PLAYER_BOX_HALF_EXTENTS.y),
+      Math.min(Math.max(enemyPos.z, playerPos.z - PLAYER_BOX_HALF_EXTENTS.z), playerPos.z + PLAYER_BOX_HALF_EXTENTS.z)
+    );
+
+    // Calculate distance between closest point and sphere center
+    const distance = Math.sqrt(
+      Math.pow(closestPoint.x - enemyPos.x, 2) +
+      Math.pow(closestPoint.y - enemyPos.y, 2) +
+      Math.pow(closestPoint.z - enemyPos.z, 2)
+    );
+
+    const colliding = distance < ENEMY_RADIUS;
+
+    if (colliding) {
       // Call the game over function from GameState
-      if (window.gameOver) {
+      if (window.gameOver && !GOD_MODE) {
         window.gameOver();
       }
     }

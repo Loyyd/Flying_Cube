@@ -1,4 +1,6 @@
-export const GOD_MODE = true;
+import * as CANNON from 'cannon-es'; // Moved import to the top
+
+export const GOD_MODE = false;
 export const DEBUG_MODE = true; // Toggle to true to show hitboxes and debug info
 
 // Game State
@@ -23,6 +25,8 @@ export const GameState = {
 // Player settings
 export const PLAYER_SPEED = 5.0;
 export const PLAYER_ROTATION_SPEED = 5.0;
+export const PLAYER_SIZE = 1;
+export const PLAYER_BOX_HALF_EXTENTS = new CANNON.Vec3(PLAYER_SIZE * 1.3, PLAYER_SIZE, PLAYER_SIZE * 1.3);
 
 // Shot settings
 export const SHOT_RANGE = 10;
@@ -68,7 +72,6 @@ export const CAMERA_LERP_FACTOR = 0.05;
 
 // Game/scene settings
 export const GRID_SIZE = 75;
-export const PLAYER_SIZE = 1;
 export const SCENE_BACKGROUND_COLOR = 0x000811;
 
 // Lighting settings
@@ -78,7 +81,6 @@ export const SUN_LIGHT_INTENSITY = 3.5;       // Stronger intensity
 export const SUN_POSITION = { x: 100, y: 150, z: 100 }; // Higher position for better coverage
 
 // --- Physics Material ---
-import * as CANNON from 'cannon-es';
 export const defaultMaterial = new CANNON.Material('default');
 export const defaultContactMaterial = new CANNON.ContactMaterial(
   defaultMaterial,
