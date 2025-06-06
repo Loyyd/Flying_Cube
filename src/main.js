@@ -25,6 +25,7 @@ import { ObstacleManager } from './world/obstacleManager.js';
 import EnemySpawner from './world/enemySpawner.js';
 import { UI } from './ui/uiManager.js';
 import { Turret } from './world/turret.js';
+import { BulletManager } from './world/bulletManager.js';
 
 if (GOD_MODE) {
   GameState.score = 1000000;
@@ -208,15 +209,30 @@ renderer.domElement.addEventListener('click', (event) => {
       shotCooldownTimer = UI.getCurrentCooldown(SHOT_COOLDOWN_S);
       UI.updateCooldownCircle(0);
 
-      player.lastShotDirection.subVectors(intersectPoint, player.position).normalize();
-      player.lastShotDirection.y = 0;
+      // Fire bullets instead of creating explosion directly
+      const shootDirection = new THREE.Vector3();
+      shootDirection.subVectors(intersectPoint, player.position).normalize();
       
-      // Play shoot animation
+      // Create multiple bullets for spread effect
+      for (let i = 0; i < 3; i++) {
+        const spread = (Math.random() - 0.5) * 0.2;
+        const bulletDir = shootDirection.clone();
+        bulletDir.x += spread;
+        bulletDir.z += spread;
+        bulletDir.normalize();
+        
+        const bulletStart = player.position.clone();
+        bulletStart.y += 1; // Start bullets from player height
+        
+        bulletManager.createBullet(bulletStart, bulletDir, 50);
+      }
+
+      player.lastShotDirection.copy(shootDirection);
       player.playShootAnimation();
 
       setTimeout(() => {
         const shotCircle = player.createShotRangeCircle(scene, intersectPoint, SHOT_ACTIVE_COLOR, UI.getShotRadius());
-
+        
         activeShots.push({
           mesh: shotCircle,
           endTime: clock.elapsedTime + SHOT_EFFECT_DURATION_S,
@@ -249,6 +265,9 @@ function updateActiveShots() {
 // --- Enemy Spawner ---
 const enemySpawner = new EnemySpawner(scene, world, player);
 
+// --- Bullet Manager ---
+const bulletManager = new BulletManager(scene, world);
+
 // --- Animation Loop ---
 function animate() {
     cameraManager.update();
@@ -260,6 +279,7 @@ function animate() {
     enemySpawner.update(deltaTime);
     turret.updateDragPosition(raycaster);
     turret.update(deltaTime, enemySpawner.enemies);
+    bulletManager.update(deltaTime, enemySpawner.enemies, obstacleManager.obstacles);
   
     // Enemy hit detection with active shots
     for (const shot of activeShots) {
