@@ -25,10 +25,10 @@ export const PLAYER_ROTATION_SPEED = 5.0;
 // Shot settings
 export const SHOT_RANGE = 10;
 
-export const SHOT_EFFECT_DURATION_S = 0.01;
+export const SHOT_EFFECT_DURATION_S = 0.3; // Increased to avoid excessive cleanup calls
 export const SHOT_COOLDOWN_S = 2;
 export const SHOT_ACTIVE_COLOR = 0xff0000;
-export const EXPLOSION_DELAY_S = 0.3;
+export const EXPLOSION_DELAY_S = 0.2; // Reduced delay for better game feel
 
 // Visual indicators
 export const RING_THICKNESS = 0.15;

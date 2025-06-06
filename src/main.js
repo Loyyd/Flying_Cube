@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import Player from './world/player.js';
+import { Assets } from './core/assetManager.js';
 import {
   GOD_MODE,
   GameState,
@@ -14,6 +15,9 @@ import {
   SCENE_BACKGROUND_COLOR,
   defaultMaterial,
   defaultContactMaterial,
+  // Visual indicators
+  RING_THICKNESS,
+  RING_OPACITY,
   // Lighting constants
   SUN_LIGHT_COLOR,
   SUN_LIGHT_INTENSITY,
@@ -35,10 +39,11 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(SCENE_BACKGROUND_COLOR);
 scene.fog = new THREE.FogExp2(SCENE_BACKGROUND_COLOR, 0.015);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
+// Set renderer with device pixel ratio for better performance on high DPI displays
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit to 2x for performance
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.physicallyCorrectLights = true;
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
@@ -83,12 +88,15 @@ sunLight.shadow.bias = -0.0003;
 scene.add(sunLight);
 
 // --- Ground ---
-const groundGeometry = new THREE.PlaneGeometry(GRID_SIZE, GRID_SIZE);
+// Use a scaled version of the shared plane geometry for better performance
+const groundGeometry = Assets.geometries.plane.clone();
+groundGeometry.scale(GRID_SIZE, GRID_SIZE, 1);
 const groundMaterial = new THREE.MeshStandardMaterial({
   color: 0x4a4a4a,
   roughness: 0.8,
   metalness: 0.2,
-  envMapIntensity: 0.5
+  envMapIntensity: 0.5,
+  flatShading: false // Disable for better ground appearance
 });
 const mainGround = new THREE.Mesh(groundGeometry, groundMaterial);
 mainGround.rotation.x = -Math.PI / 2;
@@ -209,29 +217,18 @@ renderer.domElement.addEventListener('click', (event) => {
       shotCooldownTimer = UI.getCurrentCooldown(SHOT_COOLDOWN_S);
       UI.updateCooldownCircle(0);
 
-      // Fire bullets instead of creating explosion directly
       const shootDirection = new THREE.Vector3();
       shootDirection.subVectors(intersectPoint, player.position).normalize();
-      
-      // Create multiple bullets for spread effect
-      for (let i = 0; i < 3; i++) {
-        const spread = (Math.random() - 0.5) * 0.2;
-        const bulletDir = shootDirection.clone();
-        bulletDir.x += spread;
-        bulletDir.z += spread;
-        bulletDir.normalize();
-        
-        const bulletStart = player.position.clone();
-        bulletStart.y += 1; // Start bullets from player height
-        
-        bulletManager.createBullet(bulletStart, bulletDir, 50);
-      }
-
       player.lastShotDirection.copy(shootDirection);
       player.playShootAnimation();
-
+      
       setTimeout(() => {
-        const shotCircle = player.createShotRangeCircle(scene, intersectPoint, SHOT_ACTIVE_COLOR, UI.getShotRadius());
+        const radius = UI.getShotRadius();
+        const shotCircle = shotCirclePool.get(
+          new THREE.Vector3(intersectPoint.x, 0.01, intersectPoint.z),
+          SHOT_ACTIVE_COLOR, 
+          radius
+        );
         
         activeShots.push({
           mesh: shotCircle,
@@ -248,15 +245,53 @@ function createExplosion(position) {
   explosions.push(new Explosion(position, scene, world, GameState.SHOT_RADIUS));
 }
 
+// --- Shot Effect Object Pool ---
+const shotCirclePool = {
+  pool: [],
+  maxSize: 20,
+  
+  get: function(position, color, radius) {
+    let circle;
+    if (this.pool.length > 0) {
+      circle = this.pool.pop();
+      circle.material.color.set(color);
+      circle.scale.set(radius, radius, radius);
+      circle.position.copy(position);
+    } else {
+      const ringGeo = new THREE.RingGeometry(1 - RING_THICKNESS, 1, 64);
+      const ringMat = new THREE.MeshBasicMaterial({ 
+        color: color, 
+        side: THREE.DoubleSide, 
+        transparent: true, 
+        opacity: RING_OPACITY 
+      });
+      circle = new THREE.Mesh(ringGeo, ringMat);
+      circle.rotation.x = -Math.PI / 2;
+      circle.scale.set(radius, radius, radius);
+      circle.position.copy(position);
+    }
+    scene.add(circle);
+    return circle;
+  },
+  
+  release: function(circle) {
+    scene.remove(circle);
+    if (this.pool.length < this.maxSize) {
+      this.pool.push(circle);
+    } else {
+      circle.geometry.dispose();
+      circle.material.dispose();
+    }
+  }
+};
+
 // --- Active Shots Cleanup ---
 function updateActiveShots() {
   const currentTime = clock.elapsedTime;
   for (let i = activeShots.length - 1; i >= 0; i--) {
     const shot = activeShots[i];
     if (currentTime >= shot.endTime) {
-      scene.remove(shot.mesh);
-      if (shot.mesh.geometry) shot.mesh.geometry.dispose();
-      if (shot.mesh.material) shot.mesh.material.dispose();
+      shotCirclePool.release(shot.mesh);
       activeShots.splice(i, 1);
     }
   }
@@ -268,13 +303,45 @@ const enemySpawner = new EnemySpawner(scene, world, player);
 // --- Bullet Manager ---
 const bulletManager = new BulletManager(scene, world);
 
+// --- Performance monitoring ---
+let lastFpsUpdateTime = 0;
+let frameCount = 0;
+let currentFPS = 0;
+const FPS_UPDATE_INTERVAL = 1000; // Update FPS display every second
+const TARGET_FRAMERATE = 60;
+const FRAME_TIME = 1000 / TARGET_FRAMERATE;
+let lastFrameTime = 0;
+
 // --- Animation Loop ---
-function animate() {
-    cameraManager.update();
+function animate(currentTime) {
     requestAnimationFrame(animate);
-    const deltaTime = clock.getDelta();
-    world.step(1 / 60, deltaTime, 3);
     
+    // FPS counter
+    frameCount++;
+    if (currentTime - lastFpsUpdateTime >= FPS_UPDATE_INTERVAL) {
+        currentFPS = Math.round((frameCount * 1000) / (currentTime - lastFpsUpdateTime));
+        frameCount = 0;
+        lastFpsUpdateTime = currentTime;
+        // console.log(`FPS: ${currentFPS}`); // Uncomment for FPS debugging
+    }
+    
+    // Frame time throttling for consistent physics
+    const elapsedTime = currentTime - lastFrameTime;
+    if (elapsedTime < FRAME_TIME) {
+        return; // Skip this frame if we're running too fast
+    }
+    
+    // Limit delta time to avoid physics issues on slow frames
+    const deltaTime = Math.min(elapsedTime / 1000, 1/30);
+    lastFrameTime = currentTime;
+    
+    // Fixed timestep for physics
+    world.step(1/60, deltaTime, 3);
+    
+    // Camera update
+    cameraManager.update();
+    
+    // Game object updates
     player.update(deltaTime, keys, cursorWorld, scene, playerBody);
     enemySpawner.update(deltaTime);
     turret.updateDragPosition(raycaster);
@@ -332,9 +399,15 @@ function animate() {
     renderer.setClearColor(SCENE_BACKGROUND_COLOR);
 }
 
-// --- Window Resize ---
+// --- Window Resize --- 
 window.addEventListener('resize', () => {
+  // Update camera aspect ratio
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  
+  // Update renderer
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 });
 
-animate();
+animate(performance.now());

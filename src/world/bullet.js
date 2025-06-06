@@ -1,45 +1,49 @@
 import * as THREE from 'three';
 
+// Static shared geometries and materials
+export const BULLET_GEOMETRY = new THREE.CylinderGeometry(0.05, 0.08, 0.3, 6);
+export const BULLET_MATERIAL = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+export const GLOW_GEOMETRY = new THREE.SphereGeometry(0.15, 8, 8);
+export const GLOW_MATERIAL = new THREE.MeshBasicMaterial({
+    color: 0xff6600,
+    transparent: true,
+    opacity: 0.3
+});
+
 export class Bullet {
-    constructor(position, direction, scene, speed = 5) {
+    constructor(position, direction, scene, speed = 3, range = 11) {
         this.speed = speed;
-        this.maxDistance = 100;
+        this.maxDistance = range;
         this.distanceTraveled = 0;
         this.direction = direction.clone().normalize();
         this.alive = true;
         
-        // Create optimized bullet mesh with trail effect
-        const geometry = new THREE.CylinderGeometry(0.05, 0.08, 0.3, 6);
-        // Remove emissive property from MeshBasicMaterial
-        const material = new THREE.MeshBasicMaterial({ 
-            color: 0xffaa00
-        });
+        // Use Object3D as root for better performance
+        this.container = new THREE.Object3D();
+        this.container.position.copy(position);
         
-        this.mesh = new THREE.Mesh(geometry, material);
-        this.mesh.position.copy(position);
+        // Create bullet mesh
+        this.mesh = new THREE.Mesh(BULLET_GEOMETRY, BULLET_MATERIAL);
         
         // Orient bullet in direction of travel
-        this.mesh.lookAt(position.clone().add(this.direction));
+        this.container.lookAt(position.clone().add(this.direction));
         this.mesh.rotateX(Math.PI / 2);
         
         // Add glow effect
-        const glowGeometry = new THREE.SphereGeometry(0.15, 8, 8);
-        const glowMaterial = new THREE.MeshBasicMaterial({
-            color: 0xff6600,
-            transparent: true,
-            opacity: 0.3
-        });
-        this.glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
-        this.mesh.add(this.glowMesh);
+        this.glowMesh = new THREE.Mesh(GLOW_GEOMETRY, GLOW_MATERIAL.clone());
         
-        scene.add(this.mesh);
+        // Add to container for better performance
+        this.container.add(this.mesh);
+        this.container.add(this.glowMesh);
         
-        // Cached vectors for performance
-        this._movement = new THREE.Vector3();
-        this._tempVector = new THREE.Vector3();
+        scene.add(this.container);        
+        // Cached vectors for performance (reuse these across instances)
+        this._movement = this._movement || new THREE.Vector3();
+        this._tempVector = this._tempVector || new THREE.Vector3();
         
         // Add previous position tracking for continuous collision detection
-        this.previousPosition = position.clone();
+        this.previousPosition = this.previousPosition || new THREE.Vector3();
+        this.previousPosition.copy(position);
         
         // Add collision trace line for debugging (uncomment if needed)
         /*
@@ -49,112 +53,114 @@ export class Bullet {
         );
         scene.add(this.traceLine);
         */
-    }
-
-    update(deltaTime) {
+        
+        // Visual indicator for debugging range (uncomment if needed)
+        /*
+        this.rangeIndicator = new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints([
+                position.clone(),
+                position.clone().add(direction.clone().multiplyScalar(range))
+            ]),
+            new THREE.LineDashedMaterial({ 
+                color: 0xffff00, 
+                dashSize: 0.5, 
+                gapSize: 0.2 
+            })
+        );
+        this.rangeIndicator.computeLineDistances();
+        scene.add(this.rangeIndicator);
+        */
+    }    update(deltaTime) {
         if (!this.alive) return false;
         
         // Store previous position for continuous collision detection
-        this.previousPosition.copy(this.mesh.position);
+        this.previousPosition.copy(this.container.position);
         
-        // Move bullet using cached vector
+        // Move bullet
         this._movement.copy(this.direction).multiplyScalar(this.speed * deltaTime);
-        this.mesh.position.add(this._movement);
+        this.container.position.add(this._movement);
         this.distanceTraveled += this._movement.length();
         
-        // Update trace line if using debug visualization
-        /*
-        if (this.traceLine) {
-            const positions = this.traceLine.geometry.attributes.position.array;
-            positions[0] = this.previousPosition.x;
-            positions[1] = this.previousPosition.y;
-            positions[2] = this.previousPosition.z;
-            positions[3] = this.mesh.position.x;
-            positions[4] = this.mesh.position.y;
-            positions[5] = this.mesh.position.z;
-            this.traceLine.geometry.attributes.position.needsUpdate = true;
-        }
-        */
-        
-        // Animate glow
-        this.glowMesh.rotation.x += deltaTime * 10;
+        // Simple rotation effect for visual interest - uses less CPU than complex animations
+        this.glowMesh.rotation.z += deltaTime * 5;
         this.glowMesh.rotation.y += deltaTime * 8;
         
-        // Check if bullet should be destroyed
+        // Check if bullet should be destroyed based on range
         if (this.distanceTraveled >= this.maxDistance) {
-            this.alive = false;
+            // Add visual cue for bullet expiration (optional)
+            this.expire();
             return false;
         }
         
         return true;
     }
-
-    checkCollision(target) {
+    
+    expire() {
+        // Create a small fade-out effect when bullet reaches max range
+        if (this.mesh) {
+            // Optional: Add particle effect or flash at expiration point
+            this.glowMesh.scale.set(2, 2, 2);
+            this.glowMesh.material.opacity = 0.7;
+            
+            // Mark as not alive so it gets removed next frame
+            this.alive = false;
+        }
+    }    checkCollision(target) {
         if (!this.alive || !target || !target.mesh) return false;
         
-        // Use swept sphere collision for continuous detection
-        // Calculate the vector between previous and current position
-        const movementVector = this._tempVector.subVectors(this.mesh.position, this.previousPosition);
-        const movementLength = movementVector.length();
+        // Simple sphere collision for better performance
+        // Use squared distance calculation to avoid expensive sqrt operations
+        const dx = this.container.position.x - target.mesh.position.x;
+        const dy = this.container.position.y - target.mesh.position.y;
+        const dz = this.container.position.z - target.mesh.position.z;
+        const distSquared = dx*dx + dy*dy + dz*dz;
         
-        if (movementLength < 0.0001) {
-            // Fallback to point collision if movement is too small
-            const distance = this.mesh.position.distanceTo(target.mesh.position);
-            return distance < 0.5; // collision radius
-        }
-        
-        // Create a ray from previous position in movement direction
-        const rayDirection = movementVector.normalize();
-        
-        // Calculate distance from ray to target center
-        const targetPos = target.mesh.position;
-        const toTarget = new THREE.Vector3().subVectors(targetPos, this.previousPosition);
-        const projectionLength = toTarget.dot(rayDirection);
-        
-        // Find closest point on ray to target center
-        const closestPoint = new THREE.Vector3()
-            .copy(this.previousPosition)
-            .add(rayDirection.multiplyScalar(Math.max(0, Math.min(projectionLength, movementLength))));
-        
-        // Check if closest point is within collision radius
-        const distanceToTarget = closestPoint.distanceTo(targetPos);
-        if (distanceToTarget < 0.5) { // collision radius
+        // Using squared distance (0.5 * 0.5 = 0.25)
+        if (distSquared < 0.25) {
             this.alive = false;
             return true;
         }
         
         return false;
-    }
-
-    checkTerrainCollision(raycaster, obstacles) {
+    }    checkTerrainCollision(raycaster, obstacles) {
         if (!this.alive) return false;
         
-        // Use more robust ray casting along bullet's travel path
-        const rayDirection = new THREE.Vector3().subVectors(this.mesh.position, this.previousPosition).normalize();
-        const rayStart = this.previousPosition;
-        const rayLength = this.previousPosition.distanceTo(this.mesh.position);
-        
-        // Set ray with increased length to catch fast-moving bullets
-        raycaster.set(rayStart, rayDirection);
-        const intersects = raycaster.intersectObjects(obstacles, true);
-        
-        if (intersects.length > 0 && intersects[0].distance <= rayLength) {
-            // Set bullet position to the hit point to avoid visual penetration
-            this.mesh.position.copy(intersects[0].point);
-            this.alive = false;
-            return true;
+        // Only test obstacles within a certain distance for performance
+        // We use broad-phase culling to reduce ray tests
+        for (let i = 0; i < obstacles.length; i++) {
+            const obstacle = obstacles[i];
+            
+            // Quick bounding box test before doing expensive ray cast
+            const dx = this.container.position.x - obstacle.mesh.position.x;
+            const dy = this.container.position.y - obstacle.mesh.position.y;
+            const dz = this.container.position.z - obstacle.mesh.position.z;
+            const distSquared = dx*dx + dy*dy + dz*dz;
+            
+            // Only raycast if we're close to an obstacle (2.5 is approximate obstacle size + some margin)
+            if (distSquared < 6.25) {
+                const rayDirection = new THREE.Vector3().subVectors(
+                    this.container.position, 
+                    this.previousPosition
+                ).normalize();
+                
+                raycaster.set(this.previousPosition, rayDirection);
+                const intersects = raycaster.intersectObject(obstacle.mesh);
+                
+                if (intersects.length > 0) {
+                    this.alive = false;
+                    return true;
+                }
+            }
         }
         
         return false;
-    }
-
-    dispose(scene) {
-        if (this.mesh) {
-            scene.remove(this.mesh);
-            this.mesh.geometry.dispose();
-            this.mesh.material.dispose();
-            this.glowMesh.geometry.dispose();
-            this.glowMesh.material.dispose();
+    }    dispose(scene) {
+        if (this.container) {
+            scene.remove(this.container);
+            // Don't dispose shared geometries and materials
+            this.container.remove(this.mesh);
+            this.container.remove(this.glowMesh);
+            this.container = null;
             this.mesh = null;
             this.glowMesh = null;
         }
@@ -169,9 +175,17 @@ export class Bullet {
             this.traceLine = null;
         }
         */
-    }
-
-    get position() {
-        return this.mesh ? this.mesh.position : new THREE.Vector3();
+        
+        // Also dispose of range indicator if used
+        /*
+        if (this.rangeIndicator) {
+            scene.remove(this.rangeIndicator);
+            this.rangeIndicator.geometry.dispose();
+            this.rangeIndicator.material.dispose();
+            this.rangeIndicator = null;
+        }
+        */
+    }    get position() {
+        return this.container ? this.container.position : new THREE.Vector3();
     }
 }

@@ -1,5 +1,11 @@
 import * as THREE from 'three';
-import { Bullet } from './bullet.js';
+import { 
+    Bullet, 
+    BULLET_GEOMETRY, 
+    BULLET_MATERIAL, 
+    GLOW_GEOMETRY, 
+    GLOW_MATERIAL 
+} from './bullet.js';
 
 export class BulletManager {
     constructor(scene, world) {
@@ -31,23 +37,40 @@ export class BulletManager {
         }
     }
 
-    createBullet(position, direction, speed) {
+    createBullet(position, direction, speed, range = 15) {
         let bullet;
         
         if (this.bulletPool.length > 0) {
             // Reuse bullet from pool
             bullet = this.bulletPool.pop();
+            
+            // Recreate the container and meshes since they were set to null in dispose()
+            bullet.container = new THREE.Object3D();
+            bullet.mesh = new THREE.Mesh(BULLET_GEOMETRY, BULLET_MATERIAL);
+            bullet.glowMesh = new THREE.Mesh(GLOW_GEOMETRY, GLOW_MATERIAL.clone());
+            
+            // Add to container
+            bullet.container.add(bullet.mesh);
+            bullet.container.add(bullet.glowMesh);
+            
+            // Set properties
             bullet.alive = true;
             bullet.distanceTraveled = 0;
-            bullet.direction.copy(direction).normalize();
-            bullet.mesh.position.copy(position);
+            bullet.maxDistance = range;
+            bullet.speed = speed;
+            bullet.direction = direction.clone().normalize();
+            bullet.container.position.copy(position);
+            bullet.previousPosition = bullet.previousPosition || new THREE.Vector3();
             bullet.previousPosition.copy(position);
-            bullet.mesh.lookAt(position.clone().add(bullet.direction));
+            
+            // Orient bullet
+            bullet.container.lookAt(position.clone().add(direction));
             bullet.mesh.rotateX(Math.PI / 2);
-            this.scene.add(bullet.mesh);
+            
+            this.scene.add(bullet.container);
         } else {
             // Create new bullet if pool is empty
-            bullet = new Bullet(position, direction, this.scene, speed);
+            bullet = new Bullet(position, direction, this.scene, speed, range);
         }
         
         this.bullets.push(bullet);

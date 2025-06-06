@@ -104,10 +104,12 @@ export class Explosion {
     this.scene = scene;
     this.world = world;
     this.radius = radius
-    this.particles = [];
+    this.particles = [];    // Scale particle count based on explosion size for performance
+    const fireCount = Math.min(FIRE_PARTICLE_COUNT, Math.floor(FIRE_PARTICLE_COUNT * radius));
+    const sparkCount = Math.min(SPARK_PARTICLE_COUNT, Math.floor(SPARK_PARTICLE_COUNT * radius));
 
     // Emit fire
-    for (let i = 0; i < FIRE_PARTICLE_COUNT; i++) {
+    for (let i = 0; i < fireCount; i++) {
       let p = new ExplosionParticle("fire", this.position, radius);
       p.mesh = this.makeSprite(p.color, p.size*radius, p.opacity, "fire");
       scene.add(p.mesh);
@@ -115,7 +117,7 @@ export class Explosion {
     }
 
     // Emit sparks
-    for (let i = 0; i < SPARK_PARTICLE_COUNT; i++) {
+    for (let i = 0; i < sparkCount; i++) {
       let p = new ExplosionParticle("spark", this.position);
       p.mesh = this.makeSprite(p.color, p.size*radius, p.opacity, "spark");
       scene.add(p.mesh);
@@ -163,6 +165,8 @@ export class Explosion {
     mesh.position.copy(this.position);
     return mesh;
   }
+  // Add update counter to avoid updating trails every frame
+  frameCounter = 0;
 
   update(delta) {
     // Update particles
@@ -180,23 +184,30 @@ export class Explosion {
       }
     }
 
-    // Update trails for sparks
-    for (let t of this.trails) {
-      this.scene.remove(t.line);
-    }
-    this.trails = [];
-    for (let p of this.particles) {
-      if (p.type === "spark" && p.trail.length > 1) {
-        let points = p.trail.map(trailPos => trailPos.clone());
-        let trailGeo = new THREE.BufferGeometry().setFromPoints(points);
-        let trailMat = new THREE.LineBasicMaterial({
-          color: p.color.clone().lerp(new THREE.Color(0x222222), 0.65),
-          transparent: true,
-          opacity: 0.4
-        });
-        let line = new THREE.Line(trailGeo, trailMat);
-        this.scene.add(line);
-        this.trails.push({ line, particle: p });
+    // Only update trails every 3 frames for performance
+    this.frameCounter = (this.frameCounter + 1) % 3;
+    if (this.frameCounter === 0 && this.particles.length > 0) {
+      // Update trails for sparks
+      for (let t of this.trails) {
+        this.scene.remove(t.line);
+      }
+      this.trails = [];
+      
+      // Only create trails for a subset of particles
+      for (let i = 0; i < this.particles.length; i += 2) {
+        const p = this.particles[i];
+        if (p.type === "spark" && p.trail.length > 1) {
+          let points = p.trail.map(trailPos => trailPos.clone());
+          let trailGeo = new THREE.BufferGeometry().setFromPoints(points);
+          let trailMat = new THREE.LineBasicMaterial({
+            color: p.color.clone().lerp(new THREE.Color(0x222222), 0.65),
+            transparent: true,
+            opacity: 0.3
+          });
+          let line = new THREE.Line(trailGeo, trailMat);
+          this.scene.add(line);
+          this.trails.push({ line, particle: p });
+        }
       }
     }
   }

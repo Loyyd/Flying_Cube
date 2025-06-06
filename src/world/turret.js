@@ -207,18 +207,24 @@ export class Turret {
         // Update turrets
         this.placedTurrets.forEach(turret => {
             let closestEnemy = null;
-            let closestDistance = TURRET_RANGE;
+            let closestDistanceSq = TURRET_RANGE * TURRET_RANGE; // Use squared distance for performance
 
-            enemies.forEach(enemy => {
-                // Skip dead enemies (dark red)
-                if (enemy.isRigid || enemy.timeSinceHit !== null) return;
+            // Optimization - only check enemies that could be in range (broad phase)
+            for (const enemy of enemies) {
+                // Skip dead enemies
+                if (enemy.isRigid || enemy.timeSinceHit !== null) continue;
                 
-                const distance = turret.mesh.position.distanceTo(enemy.mesh.position);
-                if (distance < closestDistance) {
-                    closestDistance = distance;
+                // Fast squared distance calculation (eliminates slow sqrt operations)
+                const dx = turret.mesh.position.x - enemy.mesh.position.x;
+                const dy = turret.mesh.position.y - enemy.mesh.position.y;
+                const dz = turret.mesh.position.z - enemy.mesh.position.z;
+                const distSq = dx*dx + dy*dy + dz*dz;
+                
+                if (distSq < closestDistanceSq) {
+                    closestDistanceSq = distSq;
                     closestEnemy = enemy;
                 }
-            });
+            }
 
             // Get current angle and target angle
             let currentAngle = turret.mesh.rotation.y % (Math.PI * 2);
