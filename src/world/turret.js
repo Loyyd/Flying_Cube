@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
-import { defaultMaterial } from '../core/settings.js';
+import { defaultMaterial, DEBUG_MODE } from '../core/settings.js';
 import { GameState } from '../core/settings.js';
 import { UI, TURRET_COST } from '../ui/uiManager.js';
 import { Bullet } from './bullet.js';
@@ -154,11 +154,27 @@ export class Turret {
             }
             this.animationMixers.set(turretModel, mixer);
 
+            // Add debug hitbox visualization if in debug mode
+            let debugHitbox = null;
+            if (DEBUG_MODE) {
+                const hitboxGeometry = new THREE.BoxGeometry(1, 1, 1); // match the cannon.js box size
+                const hitboxMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x00ff00, // green color for turrets
+                    wireframe: true,
+                    transparent: true,
+                    opacity: 0.5
+                });
+                debugHitbox = new THREE.Mesh(hitboxGeometry, hitboxMaterial);
+                debugHitbox.position.copy(turretModel.position);
+                this.scene.add(debugHitbox);
+            }
+
             this.placedTurrets.push({
                 mesh: turretModel,
                 body: body,
                 range: rangeIndicator,
-                lastShot: 0
+                lastShot: 0,
+                debugHitbox: debugHitbox
             });
         }
 
@@ -312,6 +328,11 @@ export class Turret {
                     turret.range.position.y = 0.1;
                     turret.body.position.copy(turret.mesh.position);
 
+                    // Update debug hitbox position if it exists
+                    if (turret.debugHitbox) {
+                        turret.debugHitbox.position.copy(turret.mesh.position);
+                    }
+
                     // Update rotation to face movement direction
                     const targetAngle = Math.atan2(dx, dz);
                     turret.mesh.rotation.y = targetAngle;
@@ -334,5 +355,49 @@ export class Turret {
             this.previewTurret = null;
         }
         this.isDragging = false;
+    }
+    
+    // Method to dispose a turret and clean up its resources
+    disposeTurret(turret) {
+        // Remove from scene
+        this.scene.remove(turret.mesh);
+        this.scene.remove(turret.range);
+        
+        // Remove physics body
+        this.world.removeBody(turret.body);
+        
+        // Remove debug hitbox if it exists
+        if (turret.debugHitbox) {
+            this.scene.remove(turret.debugHitbox);
+            if (turret.debugHitbox.geometry) turret.debugHitbox.geometry.dispose();
+            if (turret.debugHitbox.material) turret.debugHitbox.material.dispose();
+        }
+        
+        // Remove from turret animation mixers
+        if (this.animationMixers.has(turret.mesh)) {
+            this.animationMixers.delete(turret.mesh);
+        }
+    }
+    
+    // Clean up all turrets
+    dispose() {
+        // Remove all placed turrets
+        for (const turret of this.placedTurrets) {
+            this.disposeTurret(turret);
+        }
+        this.placedTurrets = [];
+        
+        // Clear wander data
+        this.lastWanderTargets.clear();
+        this.wanderTimers.clear();
+        
+        // Remove all bullets
+        for (const bullet of this.bullets) {
+            bullet.dispose(this.scene);
+        }
+        this.bullets = [];
+        
+        // Remove preview if dragging
+        this.cancelDragging();
     }
 }

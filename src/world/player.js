@@ -347,13 +347,11 @@ class Player extends THREE.Mesh {
             // Reset and play the animation
             this.siegeShootAction.reset().play();
         }
-    }
-
-    // Add method to toggle collision box visibility
+    }    // Add method to toggle collision box visibility
     toggleCollisionBox(visible) {
         if (this.collisionBoxHelper) {
-            this.collisionBoxHelper.visible = false;
-            this.collisionBoxHelper.material.opacity = 0;  // Also set opacity to 0 for extra measure
+            this.collisionBoxHelper.visible = visible;
+            this.collisionBoxHelper.material.opacity = visible ? 0.5 : 0;
         }
     }
 }

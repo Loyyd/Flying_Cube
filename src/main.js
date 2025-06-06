@@ -4,6 +4,7 @@ import Player from './world/player.js';
 import { Assets } from './core/assetManager.js';
 import {
   GOD_MODE,
+  DEBUG_MODE,
   GameState,
   SHOT_RANGE,
   SHOT_EFFECT_DURATION_S,
@@ -129,9 +130,54 @@ playerBody.addShape(playerShape);
 playerBody.position.set(player.position.x, player.position.y, player.position.z);
 world.addBody(playerBody);
 
+// Enable debug hitbox visualization for the player if in debug mode
+if (DEBUG_MODE) {
+    player.toggleCollisionBox(true);
+}
+
 // --- Camera ---
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const cameraManager = new CameraManager(camera, player);
+
+// --- Game Over Functions ---
+const gameOverMessage = document.getElementById('game-over-message');
+const restartButton = document.getElementById('restart-button');
+const debugModeIndicator = document.getElementById('debug-mode-indicator');
+let isGameOver = false;
+
+// Initialize debug mode indicator
+if (DEBUG_MODE) {
+  debugModeIndicator.style.display = 'block';
+  debugModeIndicator.textContent = 'Debug Mode: ON (Press F2 to toggle)';
+}
+
+// Global game over function that can be called from enemy.js
+window.gameOver = function() {
+  if (isGameOver) return; // Prevent multiple calls
+  
+  isGameOver = true;
+  gameOverMessage.style.display = 'block';
+  restartButton.style.display = 'block';
+  
+  // Stop enemy movement and player controls
+  enemySpawner.enemies.forEach(enemy => {
+    enemy.body.velocity.set(0, 0, 0);
+  });
+  
+  // Stop player controls
+  player.canMove = false;
+  
+  // Make sure player is not in combat mode
+  if (activeMode) {
+    player.exitCombatMode(scene, playerBody);
+    activeMode = false;
+  }
+};
+
+// Restart game function
+restartButton.addEventListener('click', () => {
+  location.reload(); // Simple reload for now
+});
 
 // --- State ---
 const clock = new THREE.Clock();
@@ -167,6 +213,34 @@ document.addEventListener('keydown', (e) => {
         placeCubeBtn.classList.add('active');
       }
     }
+  }
+  
+  // Toggle DEBUG_MODE with F2 key
+  if (e.key === 'F2') {
+    // Toggle debug mode
+    GameState.debugMode = !GameState.debugMode;
+    console.log('Debug Mode:', GameState.debugMode ? 'ON' : 'OFF');
+    
+    // Update debug mode indicator
+    debugModeIndicator.style.display = 'block';
+    debugModeIndicator.textContent = `Debug Mode: ${GameState.debugMode ? 'ON' : 'OFF'} (Press F2 to toggle)`;
+    
+    // Update player hitbox visibility
+    player.toggleCollisionBox(GameState.debugMode);
+    
+    // Update enemy hitboxes
+    enemySpawner.enemies.forEach(enemy => {
+      if (enemy.debugHitbox) {
+        enemy.debugHitbox.visible = GameState.debugMode;
+      }
+    });
+    
+    // Update turret hitboxes
+    turret.placedTurrets.forEach(t => {
+      if (t.debugHitbox) {
+        t.debugHitbox.visible = GameState.debugMode;
+      }
+    });
   }
 });
 document.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
@@ -296,26 +370,29 @@ function animate(currentTime) {
     // Camera update
     cameraManager.update();
     
-    // Game object updates
-    player.update(deltaTime, keys, cursorWorld, scene, playerBody);
-    enemySpawner.update(deltaTime);
-    turret.updateDragPosition(raycaster);
-    turret.update(deltaTime, enemySpawner.enemies);
-    bulletManager.update(deltaTime, enemySpawner.enemies, obstacleManager.obstacles);
-  
-    if (shotCooldownTimer > 0) {
-      shotCooldownTimer -= deltaTime;
-      UI.updateCooldownCircle(1 - shotCooldownTimer / UI.getCurrentCooldown(SHOT_COOLDOWN_S));
-      if (shotCooldownTimer <= 0) {
-        canShoot = true;
-        shotCooldownTimer = 0;
-        UI.updateCooldownCircle(1);
-      }
+    // Game object updates - don't update enemies and player movement if game over
+    if (!isGameOver) {
+        player.update(deltaTime, keys, cursorWorld, scene, playerBody);
+        enemySpawner.update(deltaTime);
+        turret.updateDragPosition(raycaster);
+        turret.update(deltaTime, enemySpawner.enemies);
+        bulletManager.update(deltaTime, enemySpawner.enemies, obstacleManager.obstacles);
+      
+        if (shotCooldownTimer > 0) {
+          shotCooldownTimer -= deltaTime;
+          UI.updateCooldownCircle(1 - shotCooldownTimer / UI.getCurrentCooldown(SHOT_COOLDOWN_S));
+          if (shotCooldownTimer <= 0) {
+            canShoot = true;
+            shotCooldownTimer = 0;
+            UI.updateCooldownCircle(1);
+          }
+        }
+    
+        player.position.copy(playerBody.position);
+        obstacleManager.synchronizeObstacles();
     }
 
-    player.position.copy(playerBody.position);
-    obstacleManager.synchronizeObstacles();
-
+    // Always update explosions
     for (let i = explosions.length - 1; i >= 0; i--) {
       explosions[i].update(deltaTime);
       if (explosions[i].isFinished()) {

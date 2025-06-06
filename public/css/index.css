@@ -35,6 +35,21 @@ canvas {
   z-index: 20;
 }
 
+/* Debug mode indicator */
+#debug-mode-indicator {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(30, 30, 30, 0.85);
+  color: #00ff00;
+  font-size: 0.7em;
+  padding: 4px 10px;
+  border-radius: 5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  display: none;
+  z-index: 100;
+}
+
 /* Cooldown indicator */
 #cooldown-bar-container {
   position: absolute;
@@ -235,4 +250,46 @@ canvas {
     background: #f9b233;
     color: #2a2a2a;
     animation: pulse 1.5s infinite;
+}
+
+/* Game Over Message */
+#game-over-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 4rem;
+  font-weight: bold;
+  color: #ff3333;
+  text-shadow: 0 0 10px #000, 0 0 20px #000;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 20px 40px;
+  border-radius: 10px;
+  display: none;
+  z-index: 100;
+  text-align: center;
+}
+
+#restart-button {
+  display: none;
+  position: absolute;
+  top: 60%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  background: #f9b233;
+  color: #2a2a2a;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 1.2rem;
+  cursor: pointer;
+  z-index: 100;
+  transition: all 0.3s ease;
+}
+
+#restart-button:hover {
+  background: #ffcc66;
+  transform: translateX(-50%) scale(1.05);
+  box-shadow: 0 0 15px rgba(249, 178, 51, 0.4);
 }

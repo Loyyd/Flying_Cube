@@ -9,7 +9,8 @@ import {
   ENEMY_DARK_RED as DARK_RED,
   ENEMY_CHASE_RADIUS as CHASE_RADIUS,
   ENEMY_WANDER_CHANGE_INTERVAL as WANDER_CHANGE_INTERVAL,
-  defaultMaterial
+  defaultMaterial,
+  DEBUG_MODE
 } from '../core/settings.js';
 
 class Enemy {
@@ -73,6 +74,21 @@ class Enemy {
     this.shadow.rotation.x = -Math.PI / 2;
     this.shadow.position.set(this.body.position.x, 0.05, this.body.position.z);
     this.scene.add(this.shadow);
+    
+    // Add debug hitbox visualization if in debug mode
+    this.debugHitbox = null;
+    if (DEBUG_MODE) {
+      const hitboxGeometry = new THREE.SphereGeometry(ENEMY_RADIUS, 16, 16);
+      const hitboxMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff0000,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.5
+      });
+      this.debugHitbox = new THREE.Mesh(hitboxGeometry, hitboxMaterial);
+      this.debugHitbox.position.copy(this.body.position);
+      this.scene.add(this.debugHitbox);
+    }
     
     this.wanderTarget = this._getRandomWanderTarget();
     this.wanderTimer = 0;
@@ -138,6 +154,14 @@ class Enemy {
     const dz = this.player.position.z - this.body.position.z;
     const distToPlayer = Math.sqrt(dx * dx + dz * dz);
 
+    // Check if enemy collided with player
+    if (distToPlayer < ENEMY_RADIUS + 1.2) { // 1 is an approximation for player radius
+      // Call the game over function from GameState
+      if (window.gameOver) {
+        window.gameOver();
+      }
+    }
+
     let targetVelX = 0;
     let targetVelZ = 0;
 
@@ -169,6 +193,11 @@ class Enemy {
     
     // Update only position from physics
     this.mesh.position.copy(this.body.position);
+    
+    // Update debug hitbox if it exists
+    if (this.debugHitbox) {
+      this.debugHitbox.position.copy(this.body.position);
+    }
     
     // Rotate model to face movement direction
     if (Math.abs(targetVelX) > 0.01 || Math.abs(targetVelZ) > 0.01) {
@@ -227,6 +256,14 @@ class Enemy {
       this.scene.remove(this.shadow);
       if (this.shadow.geometry) this.shadow.geometry.dispose();
       if (this.shadow.material) this.shadow.material.dispose();
+    }
+    
+    // Remove and dispose debug hitbox
+    if (this.debugHitbox) {
+      this.scene.remove(this.debugHitbox);
+      if (this.debugHitbox.geometry) this.debugHitbox.geometry.dispose();
+      if (this.debugHitbox.material) this.debugHitbox.material.dispose();
+      this.debugHitbox = null;
     }
     
     if (this.model) {

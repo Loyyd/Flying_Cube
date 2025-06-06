@@ -1,10 +1,12 @@
 export const GOD_MODE = true;
+export const DEBUG_MODE = true; // Toggle to true to show hitboxes and debug info
 
 // Game State
 export const GameState = {
   
     score: 0,
     SHOT_RADIUS: 1,
+    debugMode: DEBUG_MODE, // Initialize with the DEBUG_MODE constant
 
     // Add method to safely update score
     updateScore(amount) {
