@@ -15,8 +15,7 @@ import {
     CURSOR_INDICATOR_OPACITY,
     PLAYER_BOX_HALF_EXTENTS // Import PLAYER_BOX_HALF_EXTENTS
 } from '../core/settings.js';
-import { UI } from '../ui/uiManager.js';
-import { debug } from 'three/tsl';
+import { UI } from '../ui/uiManager.js'; // Added missing import for UI
 
 class Player extends THREE.Mesh {
     constructor(initialPosition = new THREE.Vector3(0, 3, 0)) {
@@ -73,7 +72,7 @@ class Player extends THREE.Mesh {
             }
             this.rotorBone = tank.getObjectByName("rotor");
         });
-        scene.add(this);
+        scene.add(this); // Add the player (which is a THREE.Mesh) to the scene
         
         // Add collision box visualization using PLAYER_BOX_HALF_EXTENTS
         const boxGeometry = new THREE.BoxGeometry(
@@ -136,8 +135,6 @@ class Player extends THREE.Mesh {
                 diff += Math.PI * 2;
             }
             this.targetRotationY = currentRotationY + diff;
-
-            // No immediate physics body rotation here, it will be updated in the update method
             
             if (this.siegeDriveAction) {
                 this.siegeDriveAction.paused = false;
@@ -151,7 +148,7 @@ class Player extends THREE.Mesh {
                 this.siegeDriveAction.paused = true;
             }
         }
-}
+    }
 
     /**
      * Enters combat mode, updating player visuals and physics body state.
@@ -237,7 +234,6 @@ class Player extends THREE.Mesh {
 
     createCursorIndicator(scene, cursorWorld) {
         const currentRadius = UI.getShotRadius();
-        // Recreate indicator if it doesn't exist or radius has changed
         if (!this.cursorIndicator || this.cursorIndicator.geometry.parameters.radius !== currentRadius) {
             if (this.cursorIndicator) {
                 scene.remove(this.cursorIndicator);
@@ -292,7 +288,7 @@ class Player extends THREE.Mesh {
      * @param {number} color
      * @param {number} radius (optional)
      */
-    createShotRangeCircle(scene, position, color = 0xff0000, radius = SHOT_RADIUS) {
+    createShotRangeCircle(scene, position, color = 0xff0000, radius = SHOT_RANGE) {
         const circleGeometry = new THREE.CircleGeometry(radius, 32);
         const circleMaterial = new THREE.MeshBasicMaterial({
             color: color,
@@ -328,22 +324,11 @@ class Player extends THREE.Mesh {
         physicsQuaternion.copy(this.quaternion);
         playerBody.quaternion.copy(physicsQuaternion);
 
-        // Update collision box helper position and rotation
-        // Since it's now a child of the player mesh, its position/rotation is relative
-        // and will be correctly transformed with the parent.
-        // We just need to ensure its local position/rotation is identity if it's meant to perfectly overlay the physics body.
-        // However, the physics body's position is what player.position is synced to.
-        // The collisionBoxHelper was previously added to the scene directly.
-        // If it's a child of `this` (the Player mesh), its world position will be `this.position` + `this.quaternion * this.collisionBoxHelper.position`.
-        // For it to align with `playerBody.position` (which `this.position` is set to),
-        // its local position should be (0,0,0) and local quaternion identity, assuming the Player mesh's origin is the physics body's origin.
-
-        // The line `this.collisionBoxHelper.position.copy(playerBody.position);`
-        // and `this.collisionBoxHelper.quaternion.copy(this.quaternion);`
-        // are no longer needed here if the helper is a child of `this` (Player mesh)
-        // and `this` (Player mesh) is correctly synced with `playerBody`.
-        // The `player.position.copy(playerBody.position);` happens in main.js.
-        // The `this.quaternion.slerp(...)` updates the Player mesh's rotation.
+        // The collisionBoxHelper is a child of `this` (Player mesh),
+        // so its position and rotation are relative to the player mesh.
+        // The player mesh's position is synced with playerBody.position in main.js.
+        // The player mesh's rotation is updated by slerp above.
+        // Thus, no specific update is needed for collisionBoxHelper here.
 
         if (this.isCombatMode) {
             this.createCursorIndicator(scene, cursorWorld);
@@ -359,16 +344,17 @@ class Player extends THREE.Mesh {
      */
     playShootAnimation() {
         if (this.siegeShootAction) {
-            // Stop any running instance of the animation
             this.siegeShootAction.stop();
-            // Reset and play the animation
             this.siegeShootAction.reset().play();
         }
-    }    // Add method to toggle collision box visibility
+    }
+    
     toggleCollisionBox(visible) {
         if (this.collisionBoxHelper) {
             this.collisionBoxHelper.visible = visible;
-            this.collisionBoxHelper.material.opacity = visible ? 0.5 : 0;
+            // Opacity was already handled by the material, 
+            // but explicitly setting it here if needed for some reason.
+            // this.collisionBoxHelper.material.opacity = visible ? 0.5 : 0; 
         }
     }
 }

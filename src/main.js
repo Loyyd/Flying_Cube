@@ -146,6 +146,42 @@ const gameOverMessage = document.getElementById('game-over-message');
 const restartButton = document.getElementById('restart-button');
 const debugModeIndicator = document.getElementById('debug-mode-indicator');
 let isGameOver = false;
+let isPaused = false; // Add a pause state variable
+
+const escMenu = document.getElementById('esc-menu');
+const resumeButton = document.getElementById('resume-button');
+const settingsButton = document.getElementById('settings-button');
+const restartEscButton = document.getElementById('restart-esc-button'); // Updated ID
+
+// Function to toggle pause state
+function togglePause() {
+  isPaused = !isPaused;
+  escMenu.classList.toggle('hidden', !isPaused);
+  // Add logic to pause/resume game elements (e.g., stop animations, disable controls)
+  if (isPaused) {
+    // Example: Stop enemy movement
+    enemySpawner.enemies.forEach(enemy => {
+      enemy.body.velocity.set(0, 0, 0);
+    });
+    player.canMove = false;
+  } else {
+    // Example: Resume player controls
+    player.canMove = true;
+  }
+}
+
+// Event listeners for esc menu buttons
+resumeButton.addEventListener('click', togglePause);
+settingsButton.addEventListener('click', () => {
+  // Add logic for settings
+  console.log('Settings button clicked');
+});
+
+restartEscButton.addEventListener('click', () => { // Updated event listener
+  // Add logic to restart the game
+  console.log('Restart button in ESC menu clicked');
+  location.reload(); // Simple reload for now
+});
 
 // Initialize debug mode indicator
 if (DEBUG_MODE) {
@@ -243,6 +279,9 @@ document.addEventListener('keydown', (e) => {
         t.debugHitbox.visible = GameState.debugMode;
       }
     });
+  }
+  if (e.key === 'Escape') { // Use 'Escape' for the Esc key
+    togglePause();
   }
 });
 document.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
@@ -346,6 +385,11 @@ let lastFrameTime = 0;
 // --- Animation Loop ---
 function animate(currentTime) {
     requestAnimationFrame(animate);
+
+    if (isPaused) { // Skip game updates if paused
+      renderer.render(scene, camera); // Still render the scene
+      return;
+    }
     
     // FPS counter
     frameCount++;

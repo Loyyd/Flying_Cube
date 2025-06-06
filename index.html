@@ -6,6 +6,7 @@
   <title>3D Cube Game - Enhancedd</title>
   <link rel="icon" href="public/favicon.ico" type="image/x-icon">
   <link rel="stylesheet" href="public/css/index.css">
+  <link rel="stylesheet" href="public/css/esc-menu.css">
   <style>
     #place-cube-btn.disabled {
       opacity: 0.5;
@@ -38,6 +39,13 @@
   <div id="shot-radius-ui-container"></div>
   <div id="place-cube-btn">Place Turret 250</div>  <div id="game-over-message">GAME OVER</div>
   <button id="restart-button">Restart Game</button>
+
+  <div id="esc-menu" class="hidden">
+    <h2>Paused</h2>
+    <button id="resume-button">Resume</button>
+    <button id="settings-button">Settings</button>
+    <button id="restart-esc-button">Restart</button>  </div>
+
   <script type="module" src="src/main.js"></script>
 </body>
 </html>

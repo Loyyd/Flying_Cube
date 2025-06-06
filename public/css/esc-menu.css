@@ -1,0 +1,57 @@
+/* Styles for the escape menu */
+#esc-menu {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(30, 30, 30, 0.85); /* Match other UI elements */
+  width: 175px; /* Added to make the menu wider */
+  padding: 20px;
+  border-radius: 10px; /* Match other UI elements */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5); /* Match other UI elements */
+  text-align: center;
+  z-index: 100;
+  color: #fff; /* Match other UI elements */
+  font-family: sans-serif; /* Match other UI elements */
+}
+
+#esc-menu.hidden {
+  display: none;
+}
+
+#esc-menu h2 {
+  color: white;
+  margin-bottom: 20px;
+  font-size: 1.5em; /* Adjusted for better visual hierarchy */
+  letter-spacing: 1px;
+}
+
+#esc-menu button {
+  display: block;
+  width: 100%;
+  padding: 10px 15px;
+  margin-bottom: 10px;
+  background-color: #4a4a4a; /* Darker button background */
+  color: white;
+  border: 1px solid #555; /* Subtle border */
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+#esc-menu button:hover {
+  background-color: #5a5a5a; /* Lighter on hover */
+  border-color: #777;
+}
+
+/* Specific button styling if needed, e.g., for a primary action */
+#esc-menu #resume-button {
+  background-color: #ff8c00; /* DarkOrange - to match other UI elements */
+  border-color: #cc7000; /* Darker orange for border */
+}
+
+#esc-menu #resume-button:hover {
+  background-color: #e07b00; /* Slightly darker orange for hover */
+  border-color: #b35f00; /* Even darker for hover border */
+}

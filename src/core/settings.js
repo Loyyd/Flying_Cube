@@ -1,7 +1,7 @@
 import * as CANNON from 'cannon-es'; // Moved import to the top
 
 export const GOD_MODE = false;
-export const DEBUG_MODE = true; // Toggle to true to show hitboxes and debug info
+export const DEBUG_MODE = false; // Toggle to true to show hitboxes and debug info
 
 // Game State
 export const GameState = {
@@ -26,7 +26,7 @@ export const GameState = {
 export const PLAYER_SPEED = 5.0;
 export const PLAYER_ROTATION_SPEED = 5.0;
 export const PLAYER_SIZE = 1;
-export const PLAYER_BOX_HALF_EXTENTS = new CANNON.Vec3(PLAYER_SIZE * 1.3, PLAYER_SIZE, PLAYER_SIZE * 1.3);
+export const PLAYER_BOX_HALF_EXTENTS = new CANNON.Vec3(PLAYER_SIZE * 0.7, PLAYER_SIZE*0.8, PLAYER_SIZE * 1.1);
 
 // Shot settings
 export const SHOT_RANGE = 10;
