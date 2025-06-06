@@ -135,7 +135,6 @@ const cameraManager = new CameraManager(camera, player);
 
 // --- State ---
 const clock = new THREE.Clock();
-const activeShots = [];
 const explosions = [];
 const keys = {};
 let activeMode = false;
@@ -221,78 +220,34 @@ renderer.domElement.addEventListener('click', (event) => {
       shootDirection.subVectors(intersectPoint, player.position).normalize();
       player.lastShotDirection.copy(shootDirection);
       player.playShootAnimation();
-      
-      setTimeout(() => {
-        const radius = UI.getShotRadius();
-        const shotCircle = shotCirclePool.get(
-          new THREE.Vector3(intersectPoint.x, 0.01, intersectPoint.z),
-          SHOT_ACTIVE_COLOR, 
-          radius
-        );
-        
-        activeShots.push({
-          mesh: shotCircle,
-          endTime: clock.elapsedTime + SHOT_EFFECT_DURATION_S,
-          position: shotCircle.position.clone()
-        });
-        createExplosion(intersectPoint);
-      }, EXPLOSION_DELAY_S * 1000);
+        setTimeout(() => {
+          createExplosion(intersectPoint);
+        }, EXPLOSION_DELAY_S * 1000);
     }
-  });
+});
 
-// --- Explosion ---
 function createExplosion(position) {
   explosions.push(new Explosion(position, scene, world, GameState.SHOT_RADIUS));
-}
 
-// --- Shot Effect Object Pool ---
-const shotCirclePool = {
-  pool: [],
-  maxSize: 20,
-  
-  get: function(position, color, radius) {
-    let circle;
-    if (this.pool.length > 0) {
-      circle = this.pool.pop();
-      circle.material.color.set(color);
-      circle.scale.set(radius, radius, radius);
-      circle.position.copy(position);
-    } else {
-      const ringGeo = new THREE.RingGeometry(1 - RING_THICKNESS, 1, 64);
-      const ringMat = new THREE.MeshBasicMaterial({ 
-        color: color, 
-        side: THREE.DoubleSide, 
-        transparent: true, 
-        opacity: RING_OPACITY 
-      });
-      circle = new THREE.Mesh(ringGeo, ringMat);
-      circle.rotation.x = -Math.PI / 2;
-      circle.scale.set(radius, radius, radius);
-      circle.position.copy(position);
-    }
-    scene.add(circle);
-    return circle;
-  },
-  
-  release: function(circle) {
-    scene.remove(circle);
-    if (this.pool.length < this.maxSize) {
-      this.pool.push(circle);
-    } else {
-      circle.geometry.dispose();
-      circle.material.dispose();
+  // Check spawner hits
+  for (const spawner of enemySpawner.spawners) {
+    const dist = spawner.mesh.position.distanceTo(position);
+    if (dist <= GameState.SHOT_RADIUS) {
+      enemySpawner.hitBox(spawner);
+      if (!spawner.active) {
+        UI.addScore(50);
+      }
     }
   }
-};
-
-// --- Active Shots Cleanup ---
-function updateActiveShots() {
-  const currentTime = clock.elapsedTime;
-  for (let i = activeShots.length - 1; i >= 0; i--) {
-    const shot = activeShots[i];
-    if (currentTime >= shot.endTime) {
-      shotCirclePool.release(shot.mesh);
-      activeShots.splice(i, 1);
+  
+  // Check enemy hits
+  for (const enemy of enemySpawner.enemies) {
+    if (!enemy.isRigid) {
+      const dist = enemy.mesh.position.distanceTo(position);
+      if (dist <= GameState.SHOT_RADIUS) {
+        enemy.hitByShot();
+        UI.addScore(10);
+      }
     }
   }
 }
@@ -348,31 +303,6 @@ function animate(currentTime) {
     turret.update(deltaTime, enemySpawner.enemies);
     bulletManager.update(deltaTime, enemySpawner.enemies, obstacleManager.obstacles);
   
-    // Enemy hit detection with active shots
-    for (const shot of activeShots) {
-      // Check spawner hits
-      for (const spawner of enemySpawner.spawners) {
-        const dist = spawner.mesh.position.distanceTo(shot.position);
-        if (dist <= GameState.SHOT_RADIUS) {
-          enemySpawner.hitBox(spawner);
-          if (!spawner.active) {
-            UI.addScore(50); // Bonus score for destroying a spawner
-          }
-        }
-      }
-      
-      // Check enemy hits
-      for (const enemy of enemySpawner.enemies) {
-        if (!enemy.isRigid) {
-          const dist = enemy.mesh.position.distanceTo(shot.position);
-          if (dist <= GameState.SHOT_RADIUS) {
-            enemy.hitByShot();
-            UI.addScore(10);
-          }
-        }
-      }
-    }
-
     if (shotCooldownTimer > 0) {
       shotCooldownTimer -= deltaTime;
       UI.updateCooldownCircle(1 - shotCooldownTimer / UI.getCurrentCooldown(SHOT_COOLDOWN_S));
@@ -383,7 +313,6 @@ function animate(currentTime) {
       }
     }
 
-    updateActiveShots();
     player.position.copy(playerBody.position);
     obstacleManager.synchronizeObstacles();
 

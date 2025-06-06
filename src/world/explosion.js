@@ -104,7 +104,9 @@ export class Explosion {
     this.scene = scene;
     this.world = world;
     this.radius = radius
-    this.particles = [];    // Scale particle count based on explosion size for performance
+    this.particles = [];
+    this.age = 0; // Add timer to track explosion age
+    // Scale particle count based on explosion size for performance
     const fireCount = Math.min(FIRE_PARTICLE_COUNT, Math.floor(FIRE_PARTICLE_COUNT * radius));
     const sparkCount = Math.min(SPARK_PARTICLE_COUNT, Math.floor(SPARK_PARTICLE_COUNT * radius));
 
